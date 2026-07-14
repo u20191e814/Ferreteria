@@ -1,0 +1,431 @@
+﻿@model IEnumerable<Ferreteria.DTOs.VentaListDto>
+@{
+    ViewData["Title"] = "Ventas";
+    var fechaInicio = Context.Request.Query["fechaInicio"].ToString();
+    var fechaFin = Context.Request.Query["fechaFin"].ToString();
+    var metodoPago = Context.Request.Query["metodoPago"].ToString();
+    var estado = Context.Request.Query["estado"].ToString();
+    var clienteBusqueda = Context.Request.Query["clienteBusqueda"].ToString();
+    var pageSize = Context.Request.Query["pageSize"].ToString() ?? "10";
+    var currentPage = int.TryParse(Context.Request.Query["page"].ToString(), out var cp) ? cp : 1;
+
+    var totalItems = ViewBag.Total as int? ?? 0;
+    var itemsPerPage = int.TryParse(pageSize, out var ps) ? ps : 10;
+    var totalPages = (int)Math.Ceiling((double)totalItems / itemsPerPage);
+    // var pagedItems = Model?.Skip((currentPage - 1) * itemsPerPage).Take(itemsPerPage).ToList() ?? new List<Ferreteria.DTOs.VentaListDto>();
+}
+
+ 
+
+ 
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0 fw-bold">Ventas</h2>
+            
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary w-100">
+                <i class="fas fa-plus me-2"></i>Nueva Venta
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros Mejorados -->
+    <div class="card filter-card mb-4 border-0">
+        <div class="card-body p-4">
+            <form method="get" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Fecha inicio</label>
+                        <input type="date" name="fechaInicio" class="form-control"
+                               value="@(string.IsNullOrEmpty(fechaInicio) ? DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd") : fechaInicio)">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Fecha fin</label>
+                        <input type="date" name="fechaFin" class="form-control"
+                               value="@(string.IsNullOrEmpty(fechaFin) ? DateTime.Now.ToString("yyyy-MM-dd") : fechaFin)">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Método de pago</label>
+                        <select name="metodoPago" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="EFECTIVO" selected="@(metodoPago == "EFECTIVO")">💵 Efectivo</option>
+                            <option value="TARJETA" selected="@(metodoPago == "TARJETA")">💳 Tarjeta</option>
+                            <option value="TRANSFERENCIA" selected="@(metodoPago == "TRANSFERENCIA")">🏦 Transferencia</option>
+                            <option value="YAPE" selected="@(metodoPago == "YAPE")">📱 Yape</option>
+                            <option value="PLIN" selected="@(metodoPago == "PLIN")">📲 Plin</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Estado</label>
+                        <select name="estado" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="COMPLETADA" selected="@(estado == "COMPLETADA")">✅ Completada</option>
+                            <option value="ANULADA" selected="@(estado == "ANULADA")">❌ Anulada</option>
+                            
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Cliente</label>
+                        <input type="text" name="clienteBusqueda" class="form-control"
+                               placeholder="Nombre o documento..."
+                               value="@clienteBusqueda">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Vendedor</label>
+                        <select name="usuarioId" class="form-select">
+                            <option value="">Todos</option>
+                            @if (ViewBag.Vendedores != null)
+                            {
+                                @foreach (var vendedor in ViewBag.Vendedores)
+                                {
+                                    <option value="@vendedor.Id" selected="@(ViewBag.UsuarioId == vendedor.Id)">
+                                        @vendedor.NombreCompleto
+                                    </option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Registros por página</label>
+                        <select name="pageSize" class="form-select" onchange="this.form.submit()">
+                            <option value="10" selected="@(pageSize == "10")">10 registros</option>
+                            <option value="20" selected="@(pageSize == "20")">20 registros</option>
+                            <option value="50" selected="@(pageSize == "50")">50 registros</option>
+                        </select>
+                    </div>
+                    <div class="col-md-10 d-flex align-items-end justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Buscar
+                        </button>
+                        
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">Total Ventas</h6>
+                        <h3 class="mb-1 fw-bold" id="totalVentas">S/ 0.00</h3>
+                        <small class="text-success fw-semibold" id="cantidadVentas">0 transacciones</small>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle ms-3">
+                        <i class="fas fa-shopping-cart text-primary fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card success h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">Efectivo</h6>
+                        <h3 class="mb-1 fw-bold text-success" id="totalEfectivo">S/ 0.00</h3>
+                        <small class="text-muted" id="porcEfectivo">0%</small>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle ms-3">
+                        <i class="fas fa-money-bill-wave text-success fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card info h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">Digital</h6>
+                        <h3 class="mb-1 fw-bold text-info" id="totalDigital">S/ 0.00</h3>
+                        <small class="text-muted" id="porcDigital">0%</small>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded-circle ms-3">
+                        <i class="fas fa-credit-card text-info fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+         
+    </div>
+
+     
+    
+
+    <!-- Tabla de Ventas -->
+    <div class="card table-modern">
+        <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold gradient-text">
+                <i class="fas fa-list me-2"></i>Listado de ventas
+            </h5>
+            <div class="input-group w-auto">
+                <span class="input-group-text bg-light border-end-0 rounded-start-pill">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+                <input type="text" id="buscarVenta" class="form-control border-start-0 rounded-end-pill"
+                       placeholder="Buscar en resultados..." onkeyup="filtrarTabla()">
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tablaVentas">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Tipo</th>
+                            <th class="ps-4">Nro </th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Vendedor</th>
+                            <th>Pago</th>
+                            <th class="text-end">Total</th>
+                            <th>Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaBody">
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var item in Model)
+                            {
+                                var metodoClass = item.MetodoPago switch
+                                {
+                                    "EFECTIVO" => "bg-success",
+                                    "TARJETA" => "bg-info",
+                                    "TRANSFERENCIA" => "bg-primary",
+                                    "YAPE" or "PLIN" => "bg-warning text-dark",
+                                    _ => "bg-secondary"
+                                };
+
+                                var estadoClass = item.Estado switch
+                                {
+                                    "COMPLETADA" => "bg-success",
+                                    "ANULADA" => "bg-danger",
+                                    "PENDIENTE" => "bg-warning text-dark",
+                                    _ => "bg-secondary"
+                                };
+
+                                <tr data-total="@item.Total" data-metodo="@item.MetodoPago"
+                                    data-vendedor="@item.VendedorNombre" data-estado="@item.Estado">
+                                    <td>@item.listorder</td>
+                                    <td>@item.TipoComprobante</td>
+                                    <td class="ps-4">
+                                        <strong class="text-primary">@item.NumeroFactura</strong>
+                                        @if (item.Estado == "ANULADA")
+                                        {
+                                            <br>
+                                            <small class="text-danger"><i class="fas fa-ban me-1"></i>Anulada</small>
+                                        }
+                                    </td>
+                                    <td>@item.FechaVenta.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                <i class="fas fa-user text-primary" style="font-size: 0.875rem;"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-semibold">@item.ClienteNombre</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@item.VendedorNombre</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-modern @metodoClass">@item.MetodoPago</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="fs-6">S/ @item.Total.ToString("N2")</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-modern @estadoClass">@item.Estado</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a asp-action="Details" asp-route-id="@item.Id"
+                                           class="btn btn-sm btn-primary rounded-pill px-3" title="Ver detalle">
+                                            <i class="fas fa-eye me-1"></i>Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
+                                    <p class="mb-0">No se encontraron ventas con los filtros aplicados</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-group-divider">
+                        <tr class="bg-light">
+                            <td colspan="5" class="text-end pe-4 py-3">
+                                <strong class="fs-5">TOTAL FILTRADO:</strong>
+                            </td>
+                            <td class="text-end py-3">
+                                <strong class="fs-5 text-primary" id="footerTotal">S/ 0.00</strong>
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        @if (totalPages > 1)
+        {
+            <div class="card-footer bg-white border-0 py-3 px-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        Mostrando <strong>
+                            @((currentPage - 1) * itemsPerPage + 1) -
+                            @(Math.Min(currentPage * itemsPerPage, totalItems))
+                        </strong> de
+                        <strong>@totalItems</strong> registros
+                    </small>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new { page = currentPage - 1, pageSize, fechaInicio, fechaFin, metodoPago, estado, clienteBusqueda, usuarioId = ViewBag.UsuarioId })">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                            {
+                                <li class="page-item @(i == currentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", new { page = i, pageSize, fechaInicio, fechaFin, metodoPago, estado, clienteBusqueda, usuarioId = ViewBag.UsuarioId })">@i</a>
+                                </li>
+                            }
+
+                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new { page = currentPage + 1, pageSize, fechaInicio, fechaFin, metodoPago, estado, clienteBusqueda, usuarioId = ViewBag.UsuarioId })">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        }
+   
+    </div>
+ 
+
+@section Scripts {
+     
+    <script>
+         
+        document.addEventListener('DOMContentLoaded', function() {
+            calcularTotales();
+            
+        });
+
+        function calcularTotales() {
+            const filas = document.querySelectorAll('#tablaBody tr[data-total]');
+            let totalVentas = 0;
+            let totalEfectivo = 0;
+            let totalDigital = 0;
+            let countEfectivo = 0;
+            let countDigital = 0;
+            let count = 0;
+
+            
+
+            filas.forEach(fila => {
+                const total = parseFloat(fila.getAttribute('data-total')) || 0;
+                const metodo = fila.getAttribute('data-metodo');
+                const vendedor = fila.getAttribute('data-vendedor');
+                const estado = fila.getAttribute('data-estado');
+
+                // Solo contar ventas completadas para totales principales
+                if (estado === 'COMPLETADA') {
+                    totalVentas += total;
+                    count++;
+
+                  
+                    if (metodo === 'EFECTIVO') {
+                        totalEfectivo += total;
+                        countEfectivo++;
+                    } else {
+                        totalDigital += total;
+                        countDigital++;
+                    }
+                }
+            });
+
+            
+            const porcEfectivo = totalVentas > 0 ? (totalEfectivo / totalVentas * 100) : 0;
+            const porcDigital = totalVentas > 0 ? (totalDigital / totalVentas * 100) : 0;
+
+            // Actualizar KPIs
+            document.getElementById('totalVentas').textContent = 'S/ ' + totalVentas.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('cantidadVentas').textContent = count + ' transacciones';
+            document.getElementById('totalEfectivo').textContent = 'S/ ' + totalEfectivo.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('porcEfectivo').textContent = porcEfectivo.toFixed(1) + '%';
+            document.getElementById('totalDigital').textContent = 'S/ ' + totalDigital.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('porcDigital').textContent = porcDigital.toFixed(1) + '%';
+             
+            document.getElementById('footerTotal').textContent = 'S/ ' + totalVentas.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+             
+
+           
+        }
+
+         
+
+        function filtrarTabla() {
+            const input = document.getElementById('buscarVenta');
+            const filtro = input.value.toLowerCase();
+            const tabla = document.getElementById('tablaVentas');
+            const filas = tabla.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+            for (let i = 0; i < filas.length; i++) {
+                const celdas = filas[i].getElementsByTagName('td');
+                let mostrar = false;
+
+                for (let j = 0; j < celdas.length; j++) {
+                    if (celdas[j]) {
+                        const texto = celdas[j].textContent || celdas[j].innerText;
+                        if (texto.toLowerCase().indexOf(filtro) > -1) {
+                            mostrar = true;
+                            break;
+                        }
+                    }
+                }
+
+                filas[i].style.display = mostrar ? '' : 'none';
+            }
+
+            calcularTotalesVisibles();
+        }
+
+        function calcularTotalesVisibles() {
+            const filasVisibles = document.querySelectorAll('#tablaBody tr:not([style*="display: none"])');
+            let total = 0;
+            let count = 0;
+
+            filasVisibles.forEach(fila => {
+                const t = parseFloat(fila.getAttribute('data-total')) || 0;
+                const estado = fila.getAttribute('data-estado');
+                if (estado === 'COMPLETADA') {
+                    total += t;
+                    count++;
+                }
+            });
+
+            document.getElementById('footerTotal').textContent = 'S/ ' + total.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            
+        }
+    </script>
+}

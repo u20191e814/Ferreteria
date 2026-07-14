@@ -1,0 +1,219 @@
+﻿:root {
+    --primary-color: #2563eb;
+    --secondary-color: #64748b;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --dark-color: #1e293b;
+    --light-bg: #f8fafc;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--light-bg);
+}
+
+.sidebar {
+    min-height: 100vh;
+    background: linear-gradient(180deg, var(--dark-color) 0%, #0f172a 100%);
+    color: white;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar2 {
+    background: linear-gradient(180deg, var(--dark-color) 0%, #0f172a 100%);
+    color: white;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+}
+/* Offcanvas / menú móvil: enlaces en color claro en vez de azul */
+.offcanvas.sidebar2,
+.offcanvas.sidebar2 .offcanvas-header {
+    background-color: #212529; /* oscuro consistente con sidebar */
+    color: #fff;
+}
+
+    .offcanvas.sidebar2 .nav-link {
+        color: rgba(255, 255, 255, 0.92); /* texto claro */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+        .offcanvas.sidebar2 .nav-link:hover,
+        .offcanvas.sidebar2 .nav-link:focus {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .offcanvas.sidebar2 .nav-link.active {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.06);
+        }
+
+    /* Ajustes para el botón cerrar (si se ve invertido) */
+    .offcanvas.sidebar2 .btn-close {
+        filter: invert(1); /* asegura que el icono se vea en fondo oscuro */
+    }
+
+    /* Truncado y límites para el bloque "Conectado" */
+    .offcanvas.sidebar2 .sidebar-bottom .text-truncate {
+        max-width: 200px;
+    }
+
+
+
+
+    .sidebar .nav-link {
+        color: #94a3b8;
+        padding: 0.875rem 1.5rem;
+        border-radius: 0.5rem;
+        margin: 0.25rem 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar .nav-link i {
+            width: 1.5rem;
+        }
+
+.main-content {
+    padding: 2rem;
+}
+
+.card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+.stat-card {
+    background: white;
+    border-left: 4px solid var(--primary-color);
+}
+
+    .stat-card.success {
+        border-left-color: var(--success-color);
+    }
+
+    .stat-card.warning {
+        border-left-color: var(--warning-color);
+    }
+
+    .stat-card.danger {
+        border-left-color: var(--danger-color);
+    }
+
+.badge-estado {
+    padding: 0.5em 1em;
+    border-radius: 9999px;
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+.table-container {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+    .btn-primary:hover {
+        background-color: #1d4ed8;
+        border-color: #1d4ed8;
+    }
+
+.form-control, .form-select {
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    padding: 0.625rem 0.875rem;
+}
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.kanban-column {
+    background: #f1f5f9;
+    border-radius: 1rem;
+    padding: 1rem;
+    min-height: 500px;
+}
+
+.kanban-header {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    text-align: center;
+}
+
+    .kanban-header.inicio {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .kanban-header.proceso {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .kanban-header.finalizado {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+.kanban-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .kanban-card:hover {
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+
+.producto-card {
+    transition: all 0.3s ease;
+}
+
+    .producto-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    }
+
+.hover-bg-light:hover {
+    background-color: #f8fafc;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 1rem;
+}

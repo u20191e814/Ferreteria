@@ -1,0 +1,84 @@
+﻿@* FerreteriaApp.Web/Views/Productos/Delete.cshtml (Vista de confirmación) *@
+@model Ferreteria.Entities.Producto
+@{
+    ViewData["Title"] = "Eliminar Producto";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+         
+        <h2 class="mb-0 text-danger">Eliminar Producto</h2>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Volver
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación</h5>
+            </div>
+            <div class="card-body p-4 text-center">
+                <div class="bg-light rounded p-4 mb-4 mx-auto" style="width: 150px;">
+                    <i class="fas fa-box-open fa-4x text-danger opacity-50"></i>
+                </div>
+
+                <h4 class="mb-2">@Model.Nombre</h4>
+                <p class="text-muted mb-4">
+                    <code>@Model.Codigo</code> |
+                    <span class="badge bg-secondary">@Model.UnidadMedida?.Nombre</span>
+                </p>
+
+                <div class="alert alert-warning text-start">
+                    <h6><i class="fas fa-info-circle me-2"></i>Información importante:</h6>
+                    <ul class="mb-0 small">
+                        <li>El producto será marcado como <strong>inactivo</strong> en el sistema</li>
+                        <li>No aparecerá en las búsquedas de ventas ni pedidos</li>
+                        <li>El historial de movimientos y ventas se conservará</li>
+                        <li>Esta acción <strong>no se puede deshacer</strong></li>
+                    </ul>
+                </div>
+
+                @if (Model.StockActual > 0)
+                {
+                    <div class="alert alert-danger text-start">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <strong>Advertencia:</strong> Este producto tiene <strong>@Model.StockActual.ToString("N2") @Model.UnidadMedida?.Abreviatura</strong> en stock.
+                        Considere ajustar el inventario antes de eliminar.
+                    </div>
+                }
+
+                <form asp-action="Delete" method="post" class="mt-4">
+                    <input type="hidden" asp-for="Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Escriba <strong>ELIMINAR</strong> para confirmar:</label>
+                        <input type="text" class="form-control text-center fw-bold" id="confirmacionTexto"
+                               placeholder="ELIMINAR" autocomplete="off" oninput="validarConfirmacion()">
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg" id="btnConfirmarEliminar" disabled>
+                            <i class="fas fa-trash me-2"></i>Sí, Eliminar Producto
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function validarConfirmacion() {
+            const input = document.getElementById('confirmacionTexto').value.trim().toUpperCase();
+            const btn = document.getElementById('btnConfirmarEliminar');
+            btn.disabled = input !== 'ELIMINAR';
+        }
+    </script>
+}

@@ -1,0 +1,122 @@
+﻿@using Ferreteria.DTOs
+@using Ferreteria.Entities
+@model  UsuarioUpdateDto
+@{
+    ViewData["Title"] = "Editar Usuario";
+    var roles = ViewBag.Roles as List<RolDto> ?? new List<RolDto>();
+    var rol = ViewBag.Rol as int? ?? 0;
+}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+
+        <h2 class="mb-0">Editar usuario</h2>
+        
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Volver
+    </a>
+</div>
+ 
+<div class="row g-4">
+    <div class="col-lg-12">
+        <div class="form-card">
+                 
+            <form asp-action="Edit" method="post">
+                <div asp-validation-summary="ModelOnly" class="validation-summary text-danger"></div>
+                <input type="hidden" asp-for="Id" />
+                <div class="card">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Modifique los datos del usuario</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label asp-for="Nombre" class="form-label fw-bold">
+                                    Nombre <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="Nombre" class="form-control" placeholder="Ingrese nombre ... " required />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Apellido" class="form-label fw-bold">
+                                    Apellido <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="Apellido" class="form-control" placeholder="Ingrese apellidos ... " required />
+
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Telefono" class="form-label fw-bold">
+                                    Telefono<span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="Telefono" type="tel" class="form-control" placeholder="Ingrese telefono ..." required />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label asp-for="RolId" class="form-label fw-bold">
+                                    Rol <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+
+                                    <select asp-for="RolId" required class="form-select">
+                                        @foreach (var r in roles)
+                                        {
+                                            <option value="@r.Id" selected="@(rol == r.Id)">@r.Nombre</option>
+                                        }
+                                    </select>
+
+
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Email" class="form-label fw-bold">Correo Electrónico
+                                <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input asp-for="Email" class="form-control" type="email" placeholder="Ingrese correo electrónico ..." required />
+                                </div>
+
+
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="PasswordHash" class="form-label fw-bold">
+                                    Contraseña
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="PasswordHash" class="form-control" type="password" placeholder="Ingrese contraseña ..." required minlength="3" />
+
+                                </div>
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>Actualizar Usuario
+                        </button>
+
+                    </div>
+                </div>
+                 
+            </form>
+        </div>
+    </div>
+</div>
+ 
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,1622 @@
+﻿@using Ferreteria.DTOs
+@model Ferreteria.DTOs.ProductoUpdateDto
+@{
+    ViewData["Title"] = "Editar Producto";
+    var unidades = ViewBag.UnidadesMedida as IEnumerable<UnidadMedidaDto> ?? new List<UnidadMedidaDto>();
+    var categorias = ViewBag.Categorias as IEnumerable<CategoriaDto> ?? new List<CategoriaDto>();
+}
+ 
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+         
+        <h2 class="mb-0">Modificar producto #@Model.Id</h2>
+      
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">
+            <i class="fas fa-eye me-2"></i>Ver Detalle
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+</div>
+
+<form asp-action="Edit" method="post" id="formEditar" class="needs-validation" novalidate>
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="FechaCreacion" />
+    <input type="hidden" asp-for="StockActual" /> @* Stock actual no editable directamente *@
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            @* Info del producto (solo lectura) *@
+            <div class="info-badge mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">Producto creado el</small>
+                        <strong class="d-block">@Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</strong>
+                    </div>
+                    <div class="text-center">
+                        <small class="text-muted">Stock Actual</small>
+                        <strong class="d-block fs-4 text-success">@Model.StockActual.ToString("N2")</strong>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">Estado</small>
+                        <span class="badge @(Model.Activo ? "bg-success" : "bg-secondary") d-block">
+                            @(Model.Activo ? "Activo" : "Inactivo")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-box me-2 text-primary"></i>Información del Producto</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Codigo" class="form-label fw-bold">
+                                Código <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="fas fa-barcode text-muted"></i>
+                                </span>
+                                <input asp-for="Codigo" class="form-control" required maxlength="50" id="codigo" onblur="validarCodigoUnico()">
+                            </div>
+                            <span asp-validation-for="Codigo" class="text-danger small"></span>
+                            <div id="codigoFeedback" class="form-text"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Nombre" class="form-label fw-bold">
+                                Nombre del Producto <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Nombre" class="form-control" required maxlength="200" id="nombre">
+                            <span asp-validation-for="Nombre" class="text-danger small"></span>
+                        </div>
+
+                        @* CATEGORÍA - Búsqueda desde BD *@
+                        <div class="col-md-6">
+                            <label asp-for="CategoriaId" class="form-label fw-bold">Categoría</label>
+                            <input type="hidden" asp-for="CategoriaId" id="categoriaId" />
+
+                            <div class="position-relative">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-tags text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="buscadorCategoria"
+                                           placeholder="Buscar o seleccionar categoría..." autocomplete="off"
+                                           value="@Model.CategoriaNombre">
+                                    <button type="button" class="btn btn-outline-primary" onclick="mostrarModalGestionCategorias()"
+                                            title="Gestionar categorías (Editar, Eliminar, Nueva)">
+                                        <i class="fas fa-th-large"></i>
+                                    </button>
+                                </div>
+
+                                @* Indicador de carga *@
+                                <div id="indicadorCargaCategoria" class="position-absolute end-0 top-0 mt-2 me-5 d-none">
+                                    <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                </div>
+                            </div>
+
+                            <div id="resultadosCategoria" class="list-group shadow-lg position-absolute w-100"
+                                 style="z-index: 1000; max-height: 200px; overflow-y: auto; display: none;">
+                            </div>
+
+                            @* Info de categoría seleccionada *@
+                            <div id="infoCategoria" class="@(Model.CategoriaId.HasValue ? "" : "d-none") mt-2">
+                                <div class="alert alert-primary p-2 mb-0 border-0 categoria-seleccionada">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-tag me-2 text-primary"></i>
+                                            <span id="nombreCategoriaSeleccionada" class="fw-bold">@(Model.CategoriaNombre ?? "-")</span>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarCategoria()" title="Cambiar categoría">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="sinCategoria" class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>Seleccione una categoría o déjelo vacío
+                            </div>
+                        </div>
+
+
+
+                        @* UNIDAD DE MEDIDA desde BD *@
+                        <div class="col-md-6">
+                            <label asp-for="UnidadMedidaId" class="form-label fw-bold">
+                                Unidad de Medida <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-ruler text-muted"></i></span>
+                                <select asp-for="UnidadMedidaId" class="form-select" required id="unidadMedida">
+                                    <option value="">Seleccionar...</option>
+                                    @foreach (var um in unidades)
+                                    {
+                                        <option value="@um.Id" data-abrev="@um.Abreviatura" selected="@(Model.UnidadMedidaId == um.Id ? "selected" : null)">
+                                            @um.NombreCompleto
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <span asp-validation-for="UnidadMedidaId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Descripcion" class="form-label fw-bold">Descripción</label>
+                            <textarea asp-for="Descripcion" class="form-control" rows="3" maxlength="500" id="descripcion"></textarea>
+                            <div class="form-text d-flex justify-content-between">
+                                <span>Información adicional para el catálogo</span>
+                                <span id="contadorDesc">@(Model.Descripcion?.Length ?? 0)/500</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Precios y Stock *@
+            <div class="card mt-4">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-dollar-sign me-2 text-success"></i>Precios y Stock</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="PrecioCompra" class="form-label fw-bold">
+                                Precio de Compra <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">S/</span>
+                                <input asp-for="PrecioCompra" type="number" class="form-control"
+                                       step="1" min="0" required id="precioCompra" onchange="calcularMargen()">
+                            </div>
+                            <span asp-validation-for="PrecioCompra" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="PrecioVenta" class="form-label fw-bold">
+                                Precio de Venta <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">S/</span>
+                                <input asp-for="PrecioVenta" type="number" class="form-control"
+                                       step="1" min="0" required id="precioVenta" onchange="calcularMargen()">
+                            </div>
+                            <span asp-validation-for="PrecioVenta" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Margen Actual</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-percentage text-muted"></i></span>
+                                <input type="text" class="form-control" id="margenPorcentaje" readonly>
+                            </div>
+                            <div id="margenAlert" class="form-text"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="StockMinimo" class="form-label fw-bold">
+                                Stock Mínimo <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="StockMinimo" type="number" class="form-control"
+                                       step="1" min="0" required id="stockMinimo">
+                                <span class="input-group-text bg-light" id="abreviaturaMinimo">und</span>
+                            </div>
+                            <span asp-validation-for="StockMinimo" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Stock Actual (Solo lectura)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light" value="@Model.StockActual.ToString("N2")" readonly>
+                                <span class="input-group-text bg-light" id="abreviaturaStock">und</span>
+                            </div>
+                            <div class="form-text">
+                                <a href="#" onclick="mostrarModalAjusteStock()">Ajustar stock</a> si es necesario
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="UbicacionAlmacen" class="form-label fw-bold">Ubicación</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-map-marker-alt text-muted"></i></span>
+                                <input asp-for="UbicacionAlmacen" class="form-control" maxlength="100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Proveedor *@
+            <div class="card mt-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-truck me-2 text-info"></i>Proveedor</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="mostrarModalProveedores()">
+                        <i class="fas fa-list me-1"></i>Ver Todos
+                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <input type="hidden" asp-for="idProveedor" id="idProveedor" />
+
+                    <div class="position-relative">
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light"><i class="fas fa-building text-muted"></i></span>
+                            <input type="text" class="form-control" id="buscadorProveedor"
+                                   placeholder="Buscar proveedor..." autocomplete="off"
+                                   value="@Model.ProveedorNombre">
+                            <button type="button" class="btn btn-outline-success" onclick="mostrarModalNuevoProveedor()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="indicadorCargaProveedor" class="position-absolute end-0 top-50 mt-4 me-5 d-none">
+                            <span class="spinner-border spinner-border-sm text-primary"></span>
+                        </div>
+                    </div>
+
+                    <div id="resultadosProveedor" class="list-group shadow-lg position-absolute w-100"
+                         style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+
+                    <div id="infoProveedor" class="@(Model.idProveedor.HasValue ? "" : "d-none") mt-3">
+                        <div class="alert alert-info p-3 mb-0 border-0 proveedor-seleccionado">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1 fw-bold" id="nombreProveedorSeleccionado">@(Model.ProveedorNombre ?? "-")</h6>
+                                    <span class="badge bg-primary">Proveedor seleccionado</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarProveedor()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Estado Activo/Inactivo *@
+            <div class="card mt-4">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-toggle-on me-2 text-warning"></i>Estado del Producto</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" asp-for="Activo" id="activoSwitch" style="width: 3em; height: 1.5em;">
+                        <label class="form-check-label ms-2" for="activoSwitch">
+                            <span id="estadoTexto" class="fw-bold">@(Model.Activo ? "Activo" : "Inactivo")</span>
+                            <div class="form-text">Desactive para ocultar el producto del catálogo</div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-outline-danger btn-lg" onclick="confirmarEliminar()">
+                    <i class="fas fa-trash me-2"></i>Eliminar producto
+                </button>
+                <div>
+                    <button type="button" class="btn btn-outline-warning btn-lg me-2" onclick="mostrarModalAjusteStock()">
+                        <i class="fas fa-balance-scale me-2"></i>Ajustar Stock
+                    </button>
+
+                </div>
+                <div class="d-flex gap-2">
+                    
+                    <button type="submit" class="btn btn-primary btn-lg" id="btnGuardar">
+                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </div>
+
+            @* HISTORIAL DE MOVIMIENTOS *@
+            <div class="card mt-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history me-2 text-secondary"></i>Historial de Movimientos</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="cargarHistorialMovimientos()">
+                        <i class="fas fa-sync-alt me-1"></i>Actualizar
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0" id="tablaHistorial">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Cantidad</th>
+                                    <th>Stock Ant.</th>
+                                    <th>Stock Nuevo</th>
+                                    <th>Usuario</th>
+                                    <th>Observación</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyHistorial">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-3">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Cargando historial...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+
+            
+        </div>
+
+        @* Columna Preview *@
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px; z-index: 100;">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-eye me-2 text-warning"></i>Vista Previa</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-3">
+                        <div class="bg-light rounded p-4 mb-3" style="height: 150px;">
+                            <i class="fas fa-box-open fa-3x text-muted opacity-25" id="previewIcon"></i>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-1" id="previewNombre">@Model.Nombre</h5>
+                    <p class="text-muted small mb-2" id="previewCodigo">@Model.Codigo</p>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge @(Model.CategoriaId.HasValue ? "bg-secondary" : "bg-light text-dark")" id="previewCategoria">
+                            @(Model.CategoriaNombre ?? "Sin categoría")
+                        </span>
+                        <span class="badge bg-primary" id="previewUnidad">und</span>
+                    </div>
+
+                    <hr>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Precio Venta</small>
+                            <strong class="text-primary fs-5" id="previewPrecio">S/ @Model.PrecioVenta.ToString("N2")</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted d-block">Stock</small>
+                            <strong class="text-success" id="previewStock">@Model.StockActual.ToString("N2") und</strong>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small mb-0" id="previewMargen">
+                        <i class="fas fa-calculator me-2"></i>Calculando margen...
+                    </div>
+
+                    <div class="mt-3 pt-3 border-top" id="previewProveedor" style="@(Model.idProveedor.HasValue ? "" : "display:none")">
+                        <small class="text-muted d-block mb-1">Proveedor</small>
+                        <span class="badge bg-info text-dark">
+                            <i class="fas fa-truck me-1"></i><span id="textoProveedorPreview">@(Model.ProveedorNombre ?? "-")</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@* ==================== MODALES ==================== *@
+
+@* Modal Confirmar Eliminar *@
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de eliminar el producto <strong id="nombreProductoEliminar">@Model.Nombre</strong>?</p>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span id="mensajeEliminar">
+                        Esta acción no se puede deshacer. Si el producto tiene ventas asociadas, solo se desactivará.
+                    </span>
+                </div>
+
+                <div id="dependenciasEliminar" class="d-none">
+                    <h6>Dependencias encontradas:</h6>
+                    <ul class="list-unstyled">
+                        <li id="tieneVentasMsg" class="d-none text-danger"><i class="fas fa-times-circle me-2"></i>Tiene ventas realizadas</li>
+                        <li id="tieneMovimientosMsg" class="d-none text-warning"><i class="fas fa-exclamation-circle me-2"></i>Tiene movimientos de inventario</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                 
+                <form asp-action="Delete" method="post" class="d-inline">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Eliminar Producto
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modales de Categorías, Proveedores (mismos que en Create) *@
+<div class="modal fade" id="modalCategorias" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-tags me-2"></i>Seleccionar Categoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="busquedaModalCategoria"
+                               placeholder="Buscar categoría..." onkeyup="filtrarCategoriasModal()">
+                    </div>
+                </div>
+                <div id="gridCategoriasModal" class="row g-3">
+                    @foreach (var cat in categorias)
+                    {
+                        <div class="col-md-4 categoria-item" data-nombre="@cat.Nombre.ToLower()">
+                            <div class="card h-100 categoria-card @(Model.CategoriaId == cat.Id ? "active" : "")"
+                                 onclick="seleccionarCategoriaDesdeModal(@cat.Id, '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(cat.Nombre))')">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-tag fa-2x @(Model.CategoriaId == cat.Id ? "text-white" : "text-primary") mb-2"></i>
+                                    <h6 class="card-title mb-1">@cat.Nombre</h6>
+                                    @if (!string.IsNullOrEmpty(cat.Descripcion))
+                                    {
+                                        <small class="@(Model.CategoriaId == cat.Id ? "text-white-50" : "text-muted") d-block text-truncate">@cat.Descripcion</small>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@* ==================== MODALES ==================== *@
+@* MODAL DE GESTIÓN COMPLETA DE CATEGORÍAS *@
+<div class="modal fade" id="modalGestionCategorias" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-tags me-2"></i>Gestionar Categorías
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @* Toolbar *@
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="input-group w-50">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="busquedaGestionCategoria"
+                               placeholder="Buscar categoría..." onkeyup="filtrarCategoriasGestion()">
+                    </div>
+                    <button type="button" class="btn btn-success" onclick="mostrarModalNuevaCategoriaDesdeGestion()">
+                        <i class="fas fa-plus me-2"></i>Nueva Categoría
+                    </button>
+                </div>
+
+                @* Loading *@
+                <div id="cargaGestionCategorias" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando categorías...</p>
+                </div>
+
+                @* Grid de Categorías *@
+                <div id="gridGestionCategorias" class="d-none">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40%">Nombre</th>
+                                    <th style="width: 35%">Descripción</th>
+                                    <th style="width: 10%" class="text-center">Productos</th>
+                                    <th style="width: 15%" class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyGestionCategorias">
+                                @* Se carga dinámicamente *@
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                @* Sin resultados *@
+                <div id="sinResultadosGestionCategorias" class="text-center py-4 text-muted d-none">
+                    <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
+                    <p>No se encontraron categorías</p>
+                </div>
+
+                @* Estado vacío *@
+                <div id="estadoVacioGestionCategorias" class="text-center py-4 text-muted d-none">
+                    <i class="fas fa-folder-open fa-2x mb-2 opacity-25"></i>
+                    <p>No hay categorías registradas</p>
+                    <button class="btn btn-sm btn-outline-primary" onclick="mostrarModalNuevaCategoriaDesdeGestion()">
+                        Crear la primera categoría
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@* MODAL EDITAR CATEGORÍA *@
+<div class="modal fade" id="modalEditarCategoria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editarCategoriaId" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="editarCategoriaNombre" maxlength="100">
+                    <div class="form-text">Mínimo 2 caracteres</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Descripción</label>
+                    <textarea class="form-control" id="editarCategoriaDescripcion" rows="2" maxlength="255"></textarea>
+                </div>
+
+                <div id="errorEditarCategoria" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+
+                <button type="button" class="btn btn-warning" onclick="guardarEdicionCategoria()">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* MODAL CONFIRMAR ELIMINACIÓN *@
+<div class="modal fade" id="modalEliminarCategoria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="eliminarCategoriaId" />
+
+                <div class="text-center mb-3">
+                    <i class="fas fa-trash-alt fa-3x text-danger opacity-50"></i>
+                </div>
+
+                <p class="text-center">
+                    ¿Está seguro de que desea eliminar la categoría <strong id="eliminarCategoriaNombre"></strong>?
+                </p>
+
+                <div id="alertaProductosAsociados" class="alert alert-warning d-none">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Esta categoría tiene <strong id="cantidadProductosEliminar">0</strong> producto(s) asociado(s).
+                    No se puede eliminar hasta que reasigne o elimine esos productos.
+                </div>
+
+                <div id="errorEliminarCategoria" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminar" onclick="confirmarEliminarCategoria()">
+                    <i class="fas fa-trash me-2"></i>Sí, Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* MODAL NUEVA CATEGORÍA (Actualizado para integración) *@
+<div class="modal fade" id="modalNuevaCategoria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Nueva Categoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="nuevaCategoriaNombre"
+                           placeholder="Ej: Materiales de Construcción" maxlength="100">
+                    <div class="form-text">Mínimo 2 caracteres</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descripción (opcional)</label>
+                    <textarea class="form-control" id="nuevaCategoriaDescripcion" rows="2"
+                              placeholder="Breve descripción..." maxlength="255"></textarea>
+                </div>
+                <div id="errorNuevaCategoria" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+
+                <button type="button" class="btn btn-success" onclick="crearCategoriaRapida()">
+                    <i class="fas fa-save me-2"></i>Crear y Seleccionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@* Modal Proveedores (simplificado) *@
+<div class="modal fade" id="modalProveedores" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-truck me-2"></i>Seleccionar Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control" id="busquedaModalProveedor" placeholder="Buscar..." onkeyup="cargarProveedoresModal()">
+                </div>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light sticky-top">
+                            <tr><th>ID</th><th>Nombre</th><th></th></tr>
+                        </thead>
+                        <tbody id="tbodyProveedoresModal"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal Nuevo Proveedor *@
+<div class="modal fade" id="modalNuevoProveedor" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Nuevo Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="nuevoProveedorNombre" maxlength="250">
+                </div>
+                <div id="errorNuevoProveedor" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                
+                <button type="button" class="btn btn-success" onclick="crearProveedorRapido()">Crear y Seleccionar</button>
+            </div>
+        </div>
+    </div>
+</div>
+@* Modal Ajustar Stock *@
+<div class="modal fade" id="modalAjusteStock" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-balance-scale me-2"></i>Ajustar Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="ajusteProductoId" value="@Model.Id" />
+                <input type="hidden" id="ajusteStockAnterior" value="@Model.StockActual" />
+
+                <div class="alert alert-info mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="d-block text-muted">Producto</small>
+                            <strong>@Model.Nombre</strong>
+                        </div>
+                        <div class="text-end">
+                            <small class="d-block text-muted">Stock Actual</small>
+                            <strong class="fs-4" id="displayStockActual">@Model.StockActual.ToString("N2")</strong>
+                            <span class="badge bg-secondary">@Model.UnidadMedidaNombre</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nuevo Stock <span class="text-danger">*</span></label>
+                    <div class="input-group input-group-lg">
+                        <input type="number" class="form-control" id="nuevoStockInput"
+                               step="1" min="0" value="@Model.StockActual">
+                        <span class="input-group-text bg-light">@Model.UnidadMedidaAbreviatura</span>
+                    </div>
+                    <div class="form-text">Ingrese la cantidad final del stock</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Diferencia</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="fas fa-calculator"></i></span>
+                        <input type="text" class="form-control" id="diferenciaStock" readonly
+                               value="0.000" style="font-weight: bold;">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tipo de Movimiento</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="tipoMovimiento" id="tipoAjuste" value="AJUSTE" checked>
+                        <label class="btn btn-outline-warning" for="tipoAjuste">
+                            <i class="fas fa-balance-scale me-1"></i>Ajuste
+                        </label>
+
+                        <input type="radio" class="btn-check" name="tipoMovimiento" id="tipoEntrada" value="ENTRADA">
+                        <label class="btn btn-outline-success" for="tipoEntrada">
+                            <i class="fas fa-arrow-up me-1"></i>Entrada
+                        </label>
+
+                        <input type="radio" class="btn-check" name="tipoMovimiento" id="tipoSalida" value="SALIDA">
+                        <label class="btn btn-outline-danger" for="tipoSalida">
+                            <i class="fas fa-arrow-down me-1"></i>Salida
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Motivo / Observación <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="motivoAjuste" rows="3"
+                              placeholder="Ej: Inventario físico, mercancía dañada, corrección de error..."
+                              minlength="5" maxlength="500"></textarea>
+                    <div class="form-text">Mínimo 5 caracteres. Este motivo quedará registrado en el historial.</div>
+                </div>
+
+                <div id="alertaAjusteStock" class="alert d-none"></div>
+            </div>
+            <div class="modal-footer">
+                 
+                <button type="button" class="btn btn-warning" id="btnConfirmarAjuste" onclick="confirmarAjusteStock()">
+                    <i class="fas fa-check me-2"></i>Confirmar Ajuste
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        // Variables globales
+        let categoriaSeleccionada = { id: @(Model.CategoriaId?.ToString() ?? "null"), nombre: '@Html.Raw(Model.CategoriaNombre ?? "")' };
+        let proveedorSeleccionado = { id: @(Model.idProveedor?.ToString() ?? "null"), nombre: '@Html.Raw(Model.ProveedorNombre ?? "")' };
+        let productoId = @Model.Id;
+        let timeoutBusqueda = null;
+         let todasLasCategorias = @Html.Raw(Json.Serialize(categorias.Select(c => new { c.Id, c.Nombre, c.Descripcion })));
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            // Actualizar abreviatura unidad
+            const umSelect = document.getElementById('unidadMedida');
+            if (umSelect.selectedIndex > 0) {
+                const abrev = umSelect.options[umSelect.selectedIndex].getAttribute('data-abrev');
+                document.getElementById('abreviaturaMinimo').textContent = abrev;
+                document.getElementById('abreviaturaStock').textContent = abrev;
+                document.getElementById('previewUnidad').textContent = abrev;
+            }
+
+            // Contador descripción
+            document.getElementById('descripcion').addEventListener('input', function() {
+                document.getElementById('contadorDesc').textContent = `${this.value.length}/500`;
+            });
+
+            // Switch estado
+            document.getElementById('activoSwitch').addEventListener('change', function() {
+                document.getElementById('estadoTexto').textContent = this.checked ? 'Activo' : 'Inactivo';
+                document.getElementById('estadoTexto').className = this.checked ? 'fw-bold text-success' : 'fw-bold text-secondary';
+            });
+
+            // Calcular margen inicial
+            calcularMargen();
+
+            // Buscadores con debounce
+            setupBuscador('buscadorCategoria', 'indicadorCargaCategoria', buscarCategoriasAjax, 'resultadosCategoria');
+            setupBuscador('buscadorProveedor', 'indicadorCargaProveedor', buscarProveedoresAjax, 'resultadosProveedor');
+
+            // Preview inputs
+            ['nombre', 'codigo', 'precioVenta'].forEach(id => {
+                document.getElementById(id)?.addEventListener('input', actualizarPreview);
+            });
+        });
+
+        function setupBuscador(inputId, spinnerId, callback, resultadosId) {
+            const input = document.getElementById(inputId);
+            input.addEventListener('input', function() {
+                clearTimeout(timeoutBusqueda);
+                const valor = this.value.trim();
+
+                if (valor.length >= 2) {
+                    document.getElementById(spinnerId).classList.remove('d-none');
+                    timeoutBusqueda = setTimeout(() => callback(valor), 300);
+                } else {
+                    document.getElementById(resultadosId).style.display = 'none';
+                    document.getElementById(spinnerId).classList.add('d-none');
+                }
+            });
+        }
+
+        // ========== CATEGORÍAS ==========
+        async function buscarCategoriasAjax(termino) {
+            try {
+                const response = await fetch(`/Productos/BuscarCategorias?texto=${encodeURIComponent(termino)}`);
+                const categorias = await response.json();
+                mostrarResultadosCategorias(categorias);
+            } catch (error) {
+                console.error('Error:', error);
+            } finally {
+                document.getElementById('indicadorCargaCategoria').classList.add('d-none');
+            }
+        }
+
+        function mostrarResultadosCategorias(categorias) {
+            const contenedor = document.getElementById('resultadosCategoria');
+            if (categorias.length === 0) {
+                contenedor.innerHTML = '<div class="list-group-item text-muted text-center py-3">No se encontraron categorías</div>';
+            } else {
+                contenedor.innerHTML = categorias.map(c => `
+                    <button type="button" class="list-group-item list-group-item-action"
+                            onclick="seleccionarCategoria(${c.id}, '${escapeHtml(c.nombre)}')">
+                        <strong>${escapeHtml(c.nombre)}</strong>
+                        ${c.descripcion ? `<div class="small text-muted">${escapeHtml(c.descripcion)}</div>` : ''}
+                    </button>
+                `).join('');
+            }
+            contenedor.style.display = 'block';
+        }
+
+        function seleccionarCategoria(id, nombre) {
+            categoriaSeleccionada = { id, nombre };
+            document.getElementById('categoriaId').value = id;
+            document.getElementById('nombreCategoriaSeleccionada').textContent = nombre;
+            document.getElementById('infoCategoria').classList.remove('d-none');
+            document.getElementById('resultadosCategoria').style.display = 'none';
+            document.getElementById('buscadorCategoria').value = '';
+            document.getElementById('previewCategoria').textContent = nombre;
+            document.getElementById('previewCategoria').className = 'badge bg-secondary';
+        }
+
+        function limpiarCategoria() {
+            categoriaSeleccionada = null;
+            document.getElementById('categoriaId').value = '';
+            document.getElementById('infoCategoria').classList.add('d-none');
+            document.getElementById('previewCategoria').textContent = 'Sin categoría';
+            document.getElementById('previewCategoria').className = 'badge bg-light text-dark';
+        }
+
+        function mostrarModalCategorias() {
+            new bootstrap.Modal(document.getElementById('modalCategorias')).show();
+        }
+
+        
+
+        function seleccionarCategoriaDesdeModal(id, nombre) {
+            seleccionarCategoria(id, nombre);
+            bootstrap.Modal.getInstance(document.getElementById('modalCategorias')).hide();
+        }
+
+        function filtrarCategoriasModal() {
+            const termino = document.getElementById('busquedaModalCategoria').value.toLowerCase();
+            document.querySelectorAll('.categoria-item').forEach(item => {
+                const nombre = item.getAttribute('data-nombre');
+                item.classList.toggle('d-none', !nombre.includes(termino));
+            });
+        }
+
+        async function crearCategoriaRapida() {
+            const nombre = document.getElementById('nuevaCategoriaNombre').value.trim();
+            const descripcion = document.getElementById('nuevaCategoriaDescripcion').value.trim();
+            const errorDiv = document.getElementById('errorNuevaCategoria');
+
+            if (nombre.length < 2) {
+                errorDiv.textContent = 'El nombre debe tener al menos 2 caracteres';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Productos/CrearCategoriaRapida', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, descripcion })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error);
+
+                seleccionarCategoria(result.id, result.nombre);
+                bootstrap.Modal.getInstance(document.getElementById('modalNuevaCategoria')).hide();
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        }
+        ////nuevas
+        function mostrarModalGestionCategorias() {
+            const modal = new bootstrap.Modal(document.getElementById('modalGestionCategorias'));
+            modal.show();
+            cargarCategoriasParaGestion();
+        }
+
+        async function cargarCategoriasParaGestion() {
+            const carga = document.getElementById('cargaGestionCategorias');
+            const grid = document.getElementById('gridGestionCategorias');
+            const sinResultados = document.getElementById('sinResultadosGestionCategorias');
+            const estadoVacio = document.getElementById('estadoVacioGestionCategorias');
+            const tbody = document.getElementById('tbodyGestionCategorias');
+
+            // Reset UI
+            carga.classList.remove('d-none');
+            grid.classList.add('d-none');
+            sinResultados.classList.add('d-none');
+            estadoVacio.classList.add('d-none');
+
+            try {
+                const response = await fetch('/Productos/GetCategoriasParaGestion');
+                if (!response.ok) throw new Error('Error al cargar');
+
+                categoriasGestion = await response.json();
+                carga.classList.add('d-none');
+
+                if (categoriasGestion.length === 0) {
+                    estadoVacio.classList.remove('d-none');
+                    return;
+                }
+
+                renderizarTablaCategorias(categoriasGestion);
+                grid.classList.remove('d-none');
+
+            } catch (error) {
+                console.error('Error:', error);
+                carga.classList.add('d-none');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-danger py-3">
+                            <i class="fas fa-exclamation-circle me-2"></i>Error al cargar categorías
+                        </td>
+                    </tr>`;
+                grid.classList.remove('d-none');
+            }
+        }
+
+        function renderizarTablaCategorias(categorias) {
+            const tbody = document.getElementById('tbodyGestionCategorias');
+
+            tbody.innerHTML = categorias.map(c => `
+                <tr data-id="${c.id}" data-nombre="${escapeHtml(c.nombre).toLowerCase()}">
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-tag text-primary me-2"></i>
+                            <strong>${escapeHtml(c.nombre)}</strong>
+                            ${c.id === categoriaSeleccionada?.id ? '<span class="badge bg-primary ms-2">Seleccionada</span>' : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="text-muted small">${escapeHtml(c.descripcion) || '-'}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge ${c.cantidadProductos > 0 ? 'bg-info' : 'bg-secondary'}">
+                            ${c.cantidadProductos}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-warning"
+                                    onclick="mostrarModalEditarCategoria(${c.id}, '${escapeHtml(c.nombre)}', '${escapeHtml(c.descripcion || '')}')"
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger ${!c.puedeEliminar ? 'disabled' : ''}"
+                                    onclick="${c.puedeEliminar ? `mostrarModalEliminarCategoria(${c.id}, '${escapeHtml(c.nombre)}', ${c.cantidadProductos})` : ''}"
+                                    title="${c.puedeEliminar ? 'Eliminar' : 'Tiene productos asociados'}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="seleccionarCategoriaDesdeGestion(${c.id}, '${escapeHtml(c.nombre)}')"
+                                    title="Seleccionar para producto">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarCategoriasGestion() {
+            const termino = document.getElementById('busquedaGestionCategoria').value.toLowerCase();
+            const filtradas = categoriasGestion.filter(c => c.nombre.toLowerCase().includes(termino));
+
+            const sinResultados = document.getElementById('sinResultadosGestionCategorias');
+            const grid = document.getElementById('gridGestionCategorias');
+
+            if (filtradas.length === 0 && termino !== '') {
+                grid.classList.add('d-none');
+                sinResultados.classList.remove('d-none');
+            } else {
+                sinResultados.classList.add('d-none');
+                grid.classList.remove('d-none');
+                renderizarTablaCategorias(filtradas);
+            }
+        }
+
+        // ============ EDITAR CATEGORÍA ============
+
+        function mostrarModalEditarCategoria(id, nombre, descripcion) {
+            document.getElementById('editarCategoriaId').value = id;
+            document.getElementById('editarCategoriaNombre').value = nombre;
+            document.getElementById('editarCategoriaDescripcion').value = descripcion;
+            document.getElementById('errorEditarCategoria').classList.add('d-none');
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarCategoria'));
+            modal.show();
+        }
+
+        async function guardarEdicionCategoria() {
+            const id = parseInt(document.getElementById('editarCategoriaId').value);
+            const nombre = document.getElementById('editarCategoriaNombre').value.trim();
+            const descripcion = document.getElementById('editarCategoriaDescripcion').value.trim();
+            const errorDiv = document.getElementById('errorEditarCategoria');
+        }
+             // ============ NUEVA CATEGORÍA (Integrada) ============
+
+        function mostrarModalNuevaCategoriaDesdeGestion() {
+            // Limpiar formulario
+            document.getElementById('nuevaCategoriaNombre').value = '';
+            document.getElementById('nuevaCategoriaDescripcion').value = '';
+            document.getElementById('errorNuevaCategoria').classList.add('d-none');
+
+            const modal = new bootstrap.Modal(document.getElementById('modalNuevaCategoria'));
+            modal.show();
+        }
+
+        // Sobrescribir función existente para también refrescar gestión
+        const crearCategoriaRapidaOriginal = crearCategoriaRapida;
+        crearCategoriaRapida = async function() {
+            const nombre = document.getElementById('nuevaCategoriaNombre').value.trim();
+            const descripcion = document.getElementById('nuevaCategoriaDescripcion').value.trim();
+            const errorDiv = document.getElementById('errorNuevaCategoria');
+
+            if (nombre.length < 2) {
+                errorDiv.textContent = 'El nombre debe tener al menos 2 caracteres';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Productos/CrearCategoriaRapida', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    },
+                    body: JSON.stringify({ nombre: nombre, descripcion: descripcion })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error al crear categoría');
+                }
+
+                // Agregar a la lista local
+                const nuevaCat = { id: result.id, nombre: result.nombre, descripcion: descripcion };
+                todasLasCategorias.push(nuevaCat);
+
+                // Seleccionar
+                seleccionarCategoria(result.id, result.nombre);
+
+                // Cerrar modal
+                bootstrap.Modal.getInstance(document.getElementById('modalNuevaCategoria')).hide();
+
+                // Refrescar gestión si está abierta
+                const modalGestion = document.getElementById('modalGestionCategorias');
+                if (modalGestion.classList.contains('show')) {
+                    await cargarCategoriasParaGestion();
+                }
+
+                mostrarToast(`Categoría "${result.nombre}" creada correctamente`, 'success');
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        };
+
+        function seleccionarCategoriaDesdeGestion(id, nombre) {
+            seleccionarCategoria(id, nombre);
+            bootstrap.Modal.getInstance(document.getElementById('modalGestionCategorias')).hide();
+        }
+        async function guardarEdicionCategoria() {
+            const id = parseInt(document.getElementById('editarCategoriaId').value);
+            const nombre = document.getElementById('editarCategoriaNombre').value.trim();
+            const descripcion = document.getElementById('editarCategoriaDescripcion').value.trim();
+            const errorDiv = document.getElementById('errorEditarCategoria');
+            // Validaciones
+            if (nombre.length < 2) {
+                errorDiv.textContent = 'El nombre debe tener al menos 2 caracteres';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Productos/EditarCategoria', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    },
+                    body: JSON.stringify({ id, nombre, descripcion })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error al actualizar');
+                }
+
+                // Actualizar lista local
+                const index = todasLasCategorias.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    todasLasCategorias[index].nombre = nombre;
+                    todasLasCategorias[index].descripcion = descripcion;
+                }
+
+                // Si es la categoría seleccionada actualmente, actualizar UI
+                if (categoriaSeleccionada?.id === id) {
+                    categoriaSeleccionada.nombre = nombre;
+                    document.getElementById('nombreCategoriaSeleccionada').textContent = nombre;
+                    document.getElementById('previewCategoria').textContent = nombre;
+                }
+
+                // Cerrar modal y refrescar grid
+                bootstrap.Modal.getInstance(document.getElementById('modalEditarCategoria')).hide();
+
+                // Refrescar gestión
+                await cargarCategoriasParaGestion();
+
+                // Mostrar notificación de éxito (opcional)
+                mostrarToast('Categoría actualizada correctamente', 'success');
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        }
+
+          // ============ ELIMINAR CATEGORÍA ============
+
+        function mostrarModalEliminarCategoria(id, nombre, cantidadProductos) {
+            document.getElementById('eliminarCategoriaId').value = id;
+            document.getElementById('eliminarCategoriaNombre').textContent = nombre;
+
+            const alerta = document.getElementById('alertaProductosAsociados');
+            const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+
+            if (cantidadProductos > 0) {
+                document.getElementById('cantidadProductosEliminar').textContent = cantidadProductos;
+                alerta.classList.remove('d-none');
+                btnConfirmar.disabled = true;
+                btnConfirmar.classList.add('disabled');
+            } else {
+                alerta.classList.add('d-none');
+                btnConfirmar.disabled = false;
+                btnConfirmar.classList.remove('disabled');
+            }
+
+            document.getElementById('errorEliminarCategoria').classList.add('d-none');
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEliminarCategoria'));
+            modal.show();
+        }
+
+        async function confirmarEliminarCategoria() {
+            const id = parseInt(document.getElementById('eliminarCategoriaId').value);
+            const errorDiv = document.getElementById('errorEliminarCategoria');
+
+            try {
+                const response = await fetch('/Productos/EliminarCategoria?id='+ id );
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error al eliminar');
+                }
+
+                // Si la categoría eliminada estaba seleccionada, limpiar selección
+                if (categoriaSeleccionada?.id === id) {
+                    limpiarCategoria();
+                }
+
+                // Remover de lista local
+                todasLasCategorias = todasLasCategorias.filter(c => c.id !== id);
+
+                // Cerrar modal y refrescar
+                bootstrap.Modal.getInstance(document.getElementById('modalEliminarCategoria')).hide();
+                await cargarCategoriasParaGestion();
+
+                mostrarToast('Categoría eliminada correctamente', 'success');
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        }
+
+        // ========== PROVEEDORES ==========
+        async function buscarProveedoresAjax(termino) {
+            try {
+                const response = await fetch(`/Productos/BuscarProveedores?texto=${encodeURIComponent(termino)}`);
+                const proveedores = await response.json();
+                mostrarResultadosProveedores(proveedores);
+            } catch (error) {
+                console.error('Error:', error);
+            } finally {
+                document.getElementById('indicadorCargaProveedor').classList.add('d-none');
+            }
+        }
+
+        function mostrarResultadosProveedores(proveedores) {
+            const contenedor = document.getElementById('resultadosProveedor');
+            if (proveedores.length === 0) {
+                contenedor.innerHTML = '<div class="list-group-item text-muted text-center">No se encontraron proveedores</div>';
+            } else {
+                contenedor.innerHTML = proveedores.map(p => `
+                    <button type="button" class="list-group-item list-group-item-action"
+                            onclick="seleccionarProveedor(${p.id}, '${escapeHtml(p.nombre)}')">
+                        <strong>${escapeHtml(p.nombre)}</strong>
+                    </button>
+                `).join('');
+            }
+            contenedor.style.display = 'block';
+        }
+
+        function seleccionarProveedor(id, nombre) {
+            proveedorSeleccionado = { id, nombre };
+            document.getElementById('idProveedor').value = id;
+            document.getElementById('nombreProveedorSeleccionado').textContent = nombre;
+            document.getElementById('infoProveedor').classList.remove('d-none');
+            document.getElementById('resultadosProveedor').style.display = 'none';
+            document.getElementById('buscadorProveedor').value = '';
+            document.getElementById('previewProveedor').style.display = 'block';
+            document.getElementById('textoProveedorPreview').textContent = nombre;
+        }
+
+        function limpiarProveedor() {
+            proveedorSeleccionado = null;
+            document.getElementById('idProveedor').value = '';
+            document.getElementById('infoProveedor').classList.add('d-none');
+            document.getElementById('previewProveedor').style.display = 'none';
+        }
+
+        function mostrarModalProveedores() {
+            new bootstrap.Modal(document.getElementById('modalProveedores')).show();
+            cargarProveedoresModal();
+        }
+
+        async function cargarProveedoresModal() {
+            const tbody = document.getElementById('tbodyProveedoresModal');
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>';
+
+            try {
+                const response = await fetch('/Productos/BuscarProveedores?texto=a');
+                const proveedores = await response.json();
+                tbody.innerHTML = proveedores.map(p => `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${escapeHtml(p.nombre)}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info" onclick="seleccionarProveedorDesdeModal(${p.id}, '${escapeHtml(p.nombre)}')">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error al cargar</td></tr>';
+            }
+        }
+
+        function seleccionarProveedorDesdeModal(id, nombre) {
+            seleccionarProveedor(id, nombre);
+            bootstrap.Modal.getInstance(document.getElementById('modalProveedores')).hide();
+        }
+
+        function mostrarModalNuevoProveedor() {
+            new bootstrap.Modal(document.getElementById('modalNuevoProveedor')).show();
+        }
+
+        async function crearProveedorRapido() {
+            const nombre = document.getElementById('nuevoProveedorNombre').value.trim();
+            const errorDiv = document.getElementById('errorNuevoProveedor');
+
+            if (nombre.length < 2) {
+                errorDiv.textContent = 'El nombre debe tener al menos 2 caracteres';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Productos/CrearProveedorRapido', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error);
+
+                seleccionarProveedor(result.id, result.nombre);
+                bootstrap.Modal.getInstance(document.getElementById('modalNuevoProveedor')).hide();
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        }
+
+        // ========== CÁLCULOS Y VALIDACIONES ==========
+        function calcularMargen() {
+            const compra = parseFloat(document.getElementById('precioCompra').value) || 0;
+            const venta = parseFloat(document.getElementById('precioVenta').value) || 0;
+
+            if (compra > 0 && venta > 0) {
+                const margen = ((venta - compra) / compra) * 100;
+                document.getElementById('margenPorcentaje').value = `${margen.toFixed(1)}%`;
+
+                let alertClass = 'alert-danger';
+                let mensaje = 'Margen bajo';
+                if (margen >= 30) { alertClass = 'alert-success'; mensaje = 'Margen óptimo'; }
+                else if (margen >= 20) { alertClass = 'alert-warning'; mensaje = 'Margen aceptable'; }
+
+                document.getElementById('previewMargen').className = `alert ${alertClass} small mb-0`;
+                document.getElementById('previewMargen').innerHTML = `<i class="fas fa-calculator me-2"></i>Margen: ${margen.toFixed(1)}%`;
+            }
+        }
+
+        function actualizarPreview() {
+            const nombre = document.getElementById('nombre').value || '@Model.Nombre';
+            const codigo = document.getElementById('codigo').value || '@Model.Codigo';
+            const precio = parseFloat(document.getElementById('precioVenta').value) || @Model.PrecioVenta;
+
+            document.getElementById('previewNombre').textContent = nombre;
+            document.getElementById('previewCodigo').textContent = codigo;
+            document.getElementById('previewPrecio').textContent = `S/ ${precio.toFixed(2)}`;
+        }
+
+        async function validarCodigoUnico() {
+            const codigo = document.getElementById('codigo').value;
+            if (!codigo || codigo === '@Model.Codigo') return; // No cambió
+
+            const feedback = document.getElementById('codigoFeedback');
+            feedback.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin me-1"></i>Verificando...</span>';
+
+            try {
+                const response = await fetch(`/Productos/ValidarCodigo?codigo=${encodeURIComponent(codigo)}&excluirId=${productoId}`);
+                const result = await response.json();
+
+                feedback.innerHTML = result.valido
+                    ? '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Código disponible</span>'
+                    : '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>' + result.mensaje + '</span>';
+            } catch (error) {
+                feedback.textContent = '';
+            }
+        }
+
+        // ========== ELIMINAR ==========
+        function confirmarEliminar() {
+            new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+                // ========== HISTORIAL DE MOVIMIENTOS ==========
+        async function cargarHistorialMovimientos() {
+            const tbody = document.getElementById('tbodyHistorial');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Cargando...</td></tr>';
+
+            try {
+                const response = await fetch(`/Productos/GetHistorialMovimientos/?id=${productoId}&limite=10`);
+                const movimientos = await response.json();
+
+                if (movimientos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>Sin movimientos registrados</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = movimientos.map(m => `
+                    <tr>
+                        <td class="text-nowrap">${new Date(m.fechaMovimiento).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>
+                            <span class="${m.tipoMovimientoClass}">
+                                <i class="${m.tipoMovimientoIcon} me-1"></i>${m.tipoMovimiento}
+                            </span>
+                        </td>
+                        <td class="text-end ${m.cantidad > 0 ? 'text-success' : 'text-danger'}">
+                            ${m.cantidad > 0 ? '+' : ''}${m.cantidad.toFixed(2)}
+                        </td>
+                        <td class="text-end">${m.stockAnterior.toFixed(2)}</td>
+                        <td class="text-end fw-bold">${m.stockNuevo.toFixed(2)}</td>
+                        <td class="small">${escapeHtml(m.usuarioNombre)}</td>
+                        <td class="small text-truncate" style="max-width: 150px;" title="${escapeHtml(m.observaciones || '-')}">
+                            ${escapeHtml(m.observaciones || '-')}
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3"><i class="fas fa-exclamation-circle me-2"></i>Error al cargar historial</td></tr>';
+            }
+        }
+
+        // Cargar historial al iniciar
+        document.addEventListener('DOMContentLoaded', cargarHistorialMovimientos);
+
+        // ========== AJUSTE DE STOCK ==========
+        function mostrarModalAjusteStock() {
+            // Resetear modal
+            document.getElementById('nuevoStockInput').value = '@Model.StockActual';
+            document.getElementById('diferenciaStock').value = '0.000';
+            document.getElementById('motivoAjuste').value = '';
+            document.getElementById('tipoAjuste').checked = true;
+            document.getElementById('alertaAjusteStock').className = 'alert d-none';
+            document.getElementById('alertaAjusteStock').textContent = '';
+
+            // Calcular diferencia inicial
+            calcularDiferenciaStock();
+
+            new bootstrap.Modal(document.getElementById('modalAjusteStock')).show();
+        }
+
+        // Calcular diferencia cuando cambia el nuevo stock
+        document.getElementById('nuevoStockInput')?.addEventListener('input', calcularDiferenciaStock);
+
+        function calcularDiferenciaStock() {
+            const stockAnterior = parseFloat(document.getElementById('ajusteStockAnterior').value);
+            const nuevoStock = parseFloat(document.getElementById('nuevoStockInput').value) || 0;
+            const diferencia = nuevoStock - stockAnterior;
+
+            const inputDiferencia = document.getElementById('diferenciaStock');
+            inputDiferencia.value = (diferencia >= 0 ? '+' : '') + diferencia.toFixed(3);
+
+            // Colorear según el tipo
+            if (diferencia > 0) {
+                inputDiferencia.className = 'form-control text-success fw-bold';
+            } else if (diferencia < 0) {
+                inputDiferencia.className = 'form-control text-danger fw-bold';
+            } else {
+                inputDiferencia.className = 'form-control text-muted fw-bold';
+            }
+
+            // Auto-seleccionar tipo de movimiento
+            if (diferencia > 0) {
+                document.getElementById('tipoEntrada').checked = true;
+            } else if (diferencia < 0) {
+                document.getElementById('tipoSalida').checked = true;
+            } else {
+                document.getElementById('tipoAjuste').checked = true;
+            }
+        }
+
+        async function confirmarAjusteStock() {
+            const btn = document.getElementById('btnConfirmarAjuste');
+            const alerta = document.getElementById('alertaAjusteStock');
+
+            // Validaciones
+            const nuevoStock = parseFloat(document.getElementById('nuevoStockInput').value);
+            const stockAnterior = parseFloat(document.getElementById('ajusteStockAnterior').value);
+            const motivo = document.getElementById('motivoAjuste').value.trim();
+            const tipoMovimiento = document.querySelector('input[name="tipoMovimiento"]:checked').value;
+
+            if (isNaN(nuevoStock) || nuevoStock < 0) {
+                mostrarAlertaAjuste('El stock no puede ser negativo', 'danger');
+                return;
+            }
+
+            if (motivo.length < 5) {
+                mostrarAlertaAjuste('El motivo debe tener al menos 5 caracteres', 'danger');
+                return;
+            }
+
+            // Deshabilitar botón
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+
+            try {
+
+                let jsonBody = JSON.stringify({
+                        ProductoId: productoId,
+                        NuevoStock: nuevoStock,
+                        StockAnterior: stockAnterior,
+                        TipoMovimiento: tipoMovimiento,
+                        Motivo: motivo
+                    });
+                const response = await fetch('/Productos/AjustarStock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: jsonBody
+                });
+
+                const resultado = await response.json();
+
+                if (resultado.success) {
+                    mostrarAlertaAjuste(`Stock ajustado correctamente. Nuevo stock: ${resultado.stockNuevo.toFixed(3)}`, 'success');
+
+                    // Actualizar valores en la página
+                    setTimeout(() => {
+                        // Actualizar stock en preview
+                        document.getElementById('previewStock').textContent = `${resultado.stockNuevo.toFixed(3)} @Model.UnidadMedidaAbreviatura`;
+                        document.getElementById('displayStockActual').textContent = resultado.stockNuevo.toFixed(3);
+                        document.getElementById('ajusteStockAnterior').value = resultado.stockNuevo;
+
+                        // Recargar historial
+                        cargarHistorialMovimientos();
+
+                        // Cerrar modal después de 1.5 segundos
+                        setTimeout(() => {
+                            bootstrap.Modal.getInstance(document.getElementById('modalAjusteStock')).hide();
+                            location.reload(); // Recargar para actualizar todo
+                        }, 1500);
+                    }, 500);
+
+                } else {
+                    mostrarAlertaAjuste(resultado.message || 'Error al ajustar stock', 'danger');
+                    if (resultado.stockAnterior) {
+                        document.getElementById('ajusteStockAnterior').value = resultado.stockAnterior;
+                        document.getElementById('displayStockActual').textContent = resultado.stockAnterior.toFixed(3);
+                    }
+                }
+
+            } catch (error) {
+                mostrarAlertaAjuste('Error de conexión. Intente nuevamente.', 'danger');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirmar Ajuste';
+            }
+        }
+
+        function mostrarAlertaAjuste(mensaje, tipo) {
+            const alerta = document.getElementById('alertaAjusteStock');
+            alerta.className = `alert alert-${tipo}`;
+            alerta.innerHTML = `<i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>${mensaje}`;
+        }
+        // Validación Bootstrap
+        (function () {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
+}

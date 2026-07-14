@@ -1,0 +1,496 @@
+﻿@model Ferreteria.DTOs.VentaDetailDto
+@{
+    ViewData["Title"] = $"Venta {Model.NumeroFactura}";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+         
+        <h2 class="mb-0">
+            Venta @Model.NumeroFactura
+            @if (Model.Estado == "ANULADA")
+            {
+                <span class="badge bg-danger ms-2">ANULADA</span>
+            }
+            else
+            {
+                <span class="badge bg-success ms-2">COMPLETADA</span>
+            }
+        </h2>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-file-pdf me-2"></i>Opciones
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                
+                <li>
+                    <a class="dropdown-item" href="@Url.Action("CapturaA4", new { id = Model.Id })" target="_blank">
+                        <i class="fas fa-eye me-2 text-info"></i>Vista Previa A4
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="@Url.Action("CapturaTicket", new { id = Model.Id })" target="_blank">
+                        <i class="fas fa-eye me-2 text-info"></i>Vista Previa 80mm
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <button type="button" class="dropdown-item" onclick="descargarPDFA4(@Model.Id)">
+                        <i class="fas fa-file-pdf me-2 text-danger"></i>
+                        <strong>Descargar en A4</strong>
+                        
+                    </button>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <button type="button" class="dropdown-item" onclick="descargarPDFTicket(@Model.Id)">
+                        <i class="fas fa-receipt me-2 text-primary"></i>
+                        <strong>Descargar en 80mm</strong>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        @if (Model.Estado == "COMPLETADA")
+        {
+            <button type="button" class="btn btn-outline-danger" onclick="mostrarModalAnulacion(@Model.Id)">
+                <i class="fas fa-ban me-2"></i>Anular venta
+            </button>
+        }
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <!-- Info Cliente -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Cliente</h5>
+            </div>
+            <div class="card-body">
+                <h6>@Model.ClienteNombre</h6>
+                <strong>@(Model.ClienteDocumento?.Length == 11 ? "RUC" : "DNI"):</strong> @Model.ClienteDocumento
+                <p class="text-muted mb-1"><i class="fas fa-map-marker-alt me-2"></i>@Model.ClienteDireccion</p>
+                <p class="text-muted mb-1"><i class="fas fa-phone me-2"></i>@Model.ClienteTelefono</p>
+                @if (!string.IsNullOrEmpty(@Model.ClienteEmail))
+                {
+                    <p class="text-muted mb-0"><i class="fas fa-envelope me-2"></i>@Model.ClienteEmail</p>
+                }
+                
+            </div>
+        </div>
+
+        
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card table-modern">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold gradient-text mb-0"><i class="fas fa-boxes me-2 text-primary"></i>Productos vendidos</h5>
+                <span class="badge bg-primary">@Model.Detalles.Count productos</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                               @*  <th>Código</th> *@
+                                <th>Producto</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-end">P. Unit.</th>
+                                <th class="text-end">Precio</th>
+                                <th class="text-end">Descuento</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody  >
+                            @foreach (var det in Model.Detalles)
+                            {
+                                <tr>
+                                    @* <td><code>@det.ProductoCodigo</code></td> *@
+                                    <td>
+                                        @det.ProductoNombre
+                                        <div>
+                                            <code>  Código: @det.ProductoCodigo</code>
+                                        </div>
+                                        <div class="small text-muted">Unidad: @det.UnidadMedida</div>
+                                    </td>
+                                    <td class="text-center">@det.Cantidad.ToString("N2")</td>
+                                    <td class="text-end">S/ @det.PrecioUnitario.ToString("N2")</td>
+                                    <td class="text-end">S/ @det.Total.ToString("N2") </td>
+                                    <td class="text-end text-danger">S/ - @det.Descuento.ToString("N2")</td>
+                                    <td class="text-end fw-bold">S/ @det.SubTotal.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-group-divider">
+                            <tr  >
+                                <td colspan="5" class="text-end">Subtotal:</td>
+                                <td class="text-end fs-6">S/ @Model.SubTotal.ToString("N2")</td>
+                            </tr>
+                            <tr  >
+                                <td colspan="5" class="text-end">IGV (18%):</td>
+                                <td class="text-end fs-6">S/ @Model.Impuestos.ToString("N2")</td>
+                            </tr>
+                            <tr  >
+                                <td colspan="5" class="text-end">Descuento:</td>
+                                <td class="text-end text-danger fs-6">S/ - @Model.Descuento.ToString("N2")</td>
+                            </tr>
+                            <tr class="fw-bold">
+                                <td colspan="5" class="text-end">TOTAL:</td>
+                                <td class="text-end text-primary fs-6">S/ @Model.Total.ToString("N2")</td>
+                            </tr>
+                            <tr  >
+                                <td colspan="5" class="text-end">Tipo de pago:</td>
+                                <td class="text-end  fs-6"> @Model.MetodoPago</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Observaciones))
+        {
+            <div class="card mt-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-sticky-note me-2 text-warning"></i>Observaciones</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">@Model.Observaciones</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<div class="modal fade" id="modalAnulacion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Anular Venta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Anular" method="post" id="formAnulacion">
+                <div class="modal-body">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="ventaIdAnular" value="@Model.Id" />
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Importante:</strong> Esta acción:
+                        <ul class="mb-0 mt-2">
+                            <li>Revertirá el stock de todos los productos</li>
+                            <li>Generará movimientos de entrada en inventario</li>
+                            <li>Si viene de un pedido, reactivará el pedido</li>
+                            <li><strong>No se puede deshacer</strong></li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">N° de Factura</label>
+                        <input type="text" class="form-control" id="numeroFacturaAnular" readonly
+                               value="@Model.NumeroFactura" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Total de Venta</label>
+                        <input type="text" class="form-control" readonly
+                               value="S/ @Model.Total.ToString("N2")" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Fecha de Venta</label>
+                        <input type="text" class="form-control" readonly
+                               value="@Model.FechaVenta.ToString("dd/MM/yyyy HH:mm")" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            Motivo de Anulación <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="motivo" id="motivoAnulacion" class="form-control" rows="4"
+                                  placeholder="Ingrese el motivo detallado de la anulación (mínimo 10 caracteres)..."
+                                  required minlength="10"></textarea>
+                        <div class="form-text">
+                            <span id="contadorMotivo">0</span>/500 caracteres. Mínimo 10.
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="confirmarAnulacion" required>
+                        <label class="form-check-label" for="confirmarAnulacion">
+                            Confirmo que deseo anular esta venta y entiendo que la acción es irreversible.
+                        </label>
+                    </div>
+
+                    <div id="alertaAnulacion" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger" id="btnConfirmarAnulacion" disabled>
+                        <i class="fas fa-ban me-2"></i>Sí, Anular Venta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalle de Anulación (para ventas ya anuladas) -->
+<div class="modal fade" id="modalDetalleAnulacion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>Detalle de Anulación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Fecha de Anulación</label>
+                    <input type="text" class="form-control" id="detalleFechaAnulacion" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Usuario que Anuló</label>
+                    <input type="text" class="form-control" id="detalleUsuarioAnulacion" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Motivo</label>
+                    <textarea class="form-control" id="detalleMotivoAnulacion" rows="4" readonly></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        
+
+         
+
+        async function descargarPDFA4(id) {
+            const btn = document.querySelector('[onclick^="descargarPDFA4"]');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...';
+            btn.disabled = true;
+
+            try {
+                // Abrir ventana de captura en popup oculto o iframe
+                const url = `/Ventas/CapturaA4?id=${id}`;
+
+                // Crear iframe invisible para renderizar
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.left = '-9999px';
+                iframe.style.width = '210mm';
+                iframe.style.height = '297mm';
+                iframe.src = url;
+
+                document.body.appendChild(iframe);
+
+                // Esperar a que cargue
+                await new Promise(resolve => {
+                    iframe.onload = () => setTimeout(resolve, 1500); // Esperar renderizado de fuentes
+                });
+
+                // Capturar con html2canvas
+                const contenido = iframe.contentDocument.getElementById('contenedor-captura');
+                const canvas = await html2canvas(contenido, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                });
+
+                // Crear PDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                // Descargar
+                const ventaNumero = '@Model.NumeroFactura';
+                pdf.save(`${ventaNumero}_A4.pdf`);
+
+                // Limpiar
+                document.body.removeChild(iframe);
+
+            } catch (error) {
+                console.error('Error generando PDF A4:', error);
+                alert('Error al generar el PDF. Por favor intente nuevamente.');
+            } finally {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            }
+        }
+
+        // Función para descargar PDF Ticket 80mm
+        async function descargarPDFTicket(id) {
+            const btn = document.querySelector('[onclick^="descargarPDFTicket"]');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...';
+            btn.disabled = true;
+
+            try {
+                const url = `/Ventas/CapturaTicket?id=${id}`;
+
+                // Crear iframe
+                const iframe = document.createElement('iframe');
+                iframe.style.position = 'fixed';
+                iframe.style.left = '-9999px';
+                iframe.style.width = '80mm';
+                iframe.style.height = '297mm';
+                iframe.src = url;
+
+                document.body.appendChild(iframe);
+
+                await new Promise(resolve => {
+                    iframe.onload = () => setTimeout(resolve, 1500);
+                });
+
+                const contenido = iframe.contentDocument.getElementById('contenedor-captura');
+
+                // Para ticket, capturamos con altura dinámica
+                const canvas = await html2canvas(contenido, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    height: contenido.scrollHeight
+                });
+
+                const { jsPDF } = window.jspdf;
+
+                // Calcular altura del PDF basado en el contenido
+                const imgWidth = 80; // mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [80, Math.max(imgHeight + 10, 100)] // Mínimo 100mm de alto
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+                const ventaNumero = '@Model.NumeroFactura';
+                pdf.save(`${ventaNumero}_TICKET.pdf`);
+
+                document.body.removeChild(iframe);
+
+            } catch (error) {
+                console.error('Error generando PDF Ticket:', error);
+                alert('Error al generar el PDF. Por favor intente nuevamente.');
+            } finally {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            }
+        }
+
+        // Funciones de Anulación
+        function mostrarModalAnulacion(id) {
+            // Validar primero vía AJAX
+            fetch(`/Ventas/ValidarAnulacion?id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.puedeAnular) {
+                        document.getElementById('ventaIdAnular').value = id;
+                        document.getElementById('numeroFacturaAnular').value = data.numeroFactura;
+
+                        const modal = new bootstrap.Modal(document.getElementById('modalAnulacion'));
+                        modal.show();
+
+                        // Reset form
+                        document.getElementById('motivoAnulacion').value = '';
+                        document.getElementById('confirmarAnulacion').checked = false;
+                        document.getElementById('btnConfirmarAnulacion').disabled = true;
+                        document.getElementById('alertaAnulacion').classList.add('d-none');
+                    } else {
+                        alert(data.mensaje || 'No se puede anular esta venta.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al validar la anulación.');
+                });
+        }
+
+        // Contador de caracteres y validación
+        document.getElementById('motivoAnulacion')?.addEventListener('input', function() {
+            const contador = document.getElementById('contadorMotivo');
+            const btn = document.getElementById('btnConfirmarAnulacion');
+            const checkbox = document.getElementById('confirmarAnulacion');
+
+            contador.textContent = this.value.length;
+
+            // Habilitar botón solo si cumple requisitos
+            const esValido = this.value.length >= 10 && checkbox.checked;
+            btn.disabled = !esValido;
+        });
+
+        document.getElementById('confirmarAnulacion')?.addEventListener('change', function() {
+            const motivo = document.getElementById('motivoAnulacion');
+            const btn = document.getElementById('btnConfirmarAnulacion');
+
+            const esValido = motivo.value.length >= 10 && this.checked;
+            btn.disabled = !esValido;
+        });
+
+        // Ver detalle de anulación
+        function verDetalleAnulacion(id) {
+            fetch(`/Ventas/DetalleAnulacion?id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        document.getElementById('detalleFechaAnulacion').value = new Date(data.fechaAnulacion).toLocaleString('es-PE');
+                        document.getElementById('detalleUsuarioAnulacion').value = data.usuarioAnulacionNombre;
+                        document.getElementById('detalleMotivoAnulacion').value = data.motivo;
+
+                        new bootstrap.Modal(document.getElementById('modalDetalleAnulacion')).show();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al cargar detalle de anulación.');
+                });
+        }
+
+        // Validación antes de enviar
+        document.getElementById('formAnulacion')?.addEventListener('submit', function(e) {
+            const motivo = document.getElementById('motivoAnulacion').value;
+
+            if (motivo.length < 10) {
+                e.preventDefault();
+                document.getElementById('alertaAnulacion').textContent = 'El motivo debe tener al menos 10 caracteres.';
+                document.getElementById('alertaAnulacion').classList.remove('d-none');
+                return false;
+            }
+
+            // Deshabilitar botón para evitar doble envío
+            document.getElementById('btnConfirmarAnulacion').disabled = true;
+            document.getElementById('btnConfirmarAnulacion').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Anulando...';
+
+            return true;
+        });
+    </script>
+}

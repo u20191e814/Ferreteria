@@ -1,0 +1,349 @@
+﻿@* FerreteriaApp.Web/Views/Clientes/Create.cshtml *@
+@model Ferreteria.Entities.Cliente
+@{
+    ViewData["Title"] = "Nuevo cliente";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+         
+        <h2 class="mb-0">Nuevo cliente </h2>
+        
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Volver
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form asp-action="Create" method="post" class="needs-validation" novalidate>
+            <div class="card">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información general</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row g-3">
+                        @* Tipo y Número de Documento *@
+                        <div class="col-md-4">
+                            <label asp-for="TipoDocumento" class="form-label fw-bold">
+                                Tipo de Documento <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="TipoDocumento" class="form-select" required id="tipoDocumento" onchange="cambiarTipoDocumento()">
+                                <option value="">Seleccionar...</option>
+                                <option value="DNI">DNI - Persona Natural</option>
+                                <option value="RUC">RUC - Empresa</option>
+                                <option value="CE">Carnet de Extranjería</option>
+                            </select>
+                            <span asp-validation-for="TipoDocumento" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-5">
+                            <label asp-for="NumeroDocumento" class="form-label fw-bold">
+                                Número <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="NumeroDocumento" class="form-control"
+                                       placeholder="Ingrese número" required maxlength="20" id="numeroDocumento"
+                                       onblur="validarDocumento()">
+                                <button type="button" class="btn btn-outline-primary" onclick="consultarSunat()" id="btnSunat" style="display: none;" title="Consultar SUNAT">
+                                    <i class="fas fa-search"></i> SUNAT
+                                </button>
+                            </div>
+                            <span asp-validation-for="NumeroDocumento" class="text-danger small"></span>
+                            <div id="validacionDoc" class="form-text"></div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Validación</label>
+                            <div id="estadoValidacion" class="form-control-plaintext">
+                                <span class="badge bg-secondary">Pendiente</span>
+                            </div>
+                        </div>
+
+                        @* Nombre *@
+                        <div class="col-12">
+                            <label asp-for="NombreCompleto" class="form-label fw-bold">
+                                Nombre Completo / Razón Social <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="NombreCompleto" class="form-control form-control-lg"
+                                   placeholder="Ingrese nombre del cliente ... "
+                                   required maxlength="200" id="nombreCompleto">
+                            <span asp-validation-for="NombreCompleto" class="text-danger small"></span>
+                        </div>
+
+                        @* Dirección *@
+                        <div class="col-12">
+                            <label asp-for="Direccion" class="form-label fw-bold">Dirección</label>
+                            <textarea asp-for="Direccion" class="form-control" rows="2"
+                                      placeholder="Dirección completa para facturación y envíos ..."
+                                      maxlength="300"></textarea>
+                            <span asp-validation-for="Direccion" class="text-danger small"></span>
+                        </div>
+
+                        @* Contacto *@
+                        <div class="col-md-6">
+                            <label asp-for="Telefono" class="form-label fw-bold">
+                                Teléfono <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input asp-for="Telefono" class="form-control"
+                                       placeholder="Ingrese telefono ..." required maxlength="20" type="tel">
+                            </div>
+                            <span asp-validation-for="Telefono" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label fw-bold">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input asp-for="Email" class="form-control"
+                                       placeholder="Ingrese un correo ..." maxlength="150" type="email">
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Configuración adicional *@
+            <div class="card mt-4">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2 text-success"></i>Configuración</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input asp-for="EsFrecuente" class="form-check-input" type="checkbox" id="esFrecuente" onchange="toggleDescuento()">
+                                <label class="form-check-label fw-bold" for="esFrecuente">
+                                    Cliente Frecuente
+                                </label>
+                                <div class="form-text">Marque si este cliente compra regularmente</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="DescuentoPreferencial" class="form-label fw-bold">
+                                Descuento Preferencial (%)
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-percentage"></i></span>
+                                <input asp-for="DescuentoPreferencial" class="form-control"
+                                       type="number" min="0" max="50" step="0.01" value="0" id="descuentoPreferencial" disabled>
+                            </div>
+                            <div class="form-text">Solo disponible para clientes frecuentes</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <button type="reset" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-undo me-2"></i>Limpiar
+                </button>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Guardar Cliente
+                    </button>
+                    <button type="submit" class="btn btn-success btn-lg" name="guardarYNuevo" value="true">
+                        <i class="fas fa-plus me-2"></i>Guardar y Nuevo
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    @* Panel lateral *@
+    <div class="col-lg-4">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-primary text-white border-0 pt-4 px-4">
+                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Guía Rápida</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="d-flex align-items-start mb-3">
+                    <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
+                        <i class="fas fa-id-card text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-1">DNI</h6>
+                        <small class="text-muted">8 dígitos para personas naturales</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <div class="bg-warning bg-opacity-10 p-2 rounded me-3">
+                        <i class="fas fa-building text-warning"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-1">RUC</h6>
+                        <small class="text-muted">11 dígitos para empresas y negocios</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <div class="bg-info bg-opacity-10 p-2 rounded me-3">
+                        <i class="fas fa-globe text-info"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-1">Carnet Extranjería</h6>
+                        <small class="text-muted">Para clientes extranjeros residentes</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="alert alert-info small mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Los campos marcados con <span class="text-danger">*</span> son obligatorios
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function cambiarTipoDocumento() {
+            const tipo = document.getElementById('tipoDocumento').value;
+            const numeroInput = document.getElementById('numeroDocumento');
+            const btnSunat = document.getElementById('btnSunat');
+
+            // Configurar placeholder y maxlength según tipo
+            switch(tipo) {
+                case 'DNI':
+                    numeroInput.placeholder = '12345678';
+                    numeroInput.maxLength = 8;
+                    btnSunat.style.display = 'none';
+                    break;
+                case 'RUC':
+                    numeroInput.placeholder = '20123456789';
+                    numeroInput.maxLength = 11;
+                    btnSunat.style.display = 'block';
+                    break;
+                case 'CE':
+                    numeroInput.placeholder = '001234567';
+                    numeroInput.maxLength = 15;
+                    btnSunat.style.display = 'none';
+                    break;
+                default:
+                    numeroInput.placeholder = 'Ingrese número';
+                    numeroInput.maxLength = 20;
+                    btnSunat.style.display = 'none';
+            }
+
+            numeroInput.value = '';
+            document.getElementById('validacionDoc').textContent = '';
+            actualizarEstadoValidacion('pendiente');
+        }
+
+        function validarDocumento() {
+            const tipo = document.getElementById('tipoDocumento').value;
+            const numero = document.getElementById('numeroDocumento').value.trim();
+            const feedback = document.getElementById('validacionDoc');
+
+            if (!tipo || !numero) {
+                actualizarEstadoValidacion('pendiente');
+                return;
+            }
+
+            let valido = false;
+            let mensaje = '';
+
+            switch(tipo) {
+                case 'DNI':
+                    valido = /^\d{8}$/.test(numero);
+                    mensaje = valido ? 'DNI válido' : 'El DNI debe tener 8 dígitos numéricos';
+                    break;
+                case 'RUC':
+                    valido = /^\d{11}$/.test(numero);
+                    mensaje = valido ? 'RUC válido' : 'El RUC debe tener 11 dígitos numéricos';
+                    break;
+                case 'CE':
+                    valido = numero.length >= 5;
+                    mensaje = valido ? 'CE válido' : 'El CE debe tener al menos 5 caracteres';
+                    break;
+            }
+
+            feedback.textContent = mensaje;
+            feedback.className = valido ? 'form-text text-success' : 'form-text text-danger';
+            actualizarEstadoValidacion(valido ? 'valido' : 'invalido');
+
+            // Verificar duplicado (simulado)
+            if (valido) {
+                verificarDuplicado(tipo, numero);
+            }
+        }
+
+        function actualizarEstadoValidacion(estado) {
+            const contenedor = document.getElementById('estadoValidacion');
+            const estados = {
+                'pendiente': '<span class="badge bg-secondary">Pendiente</span>',
+                'valido': '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Válido</span>',
+                'invalido': '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>Inválido</span>',
+                'duplicado': '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation me-1"></i>Duplicado</span>'
+            };
+            contenedor.innerHTML = estados[estado] || estados['pendiente'];
+        }
+
+        function verificarDuplicado(tipo, numero) {
+            // Simulación - En producción hacer llamada AJAX
+            const duplicadosSimulados = ['12345678', '20123456789'];
+
+            setTimeout(() => {
+                if (duplicadosSimulados.includes(numero)) {
+                    document.getElementById('validacionDoc').textContent = 'Este documento ya está registrado';
+                    document.getElementById('validacionDoc').className = 'form-text text-warning';
+                    actualizarEstadoValidacion('duplicado');
+                }
+            }, 500);
+        }
+
+        function consultarSunat() {
+            const ruc = document.getElementById('numeroDocumento').value.trim();
+
+            if (!/^\d{11}$/.test(ruc)) {
+                alert('Ingrese un RUC válido de 11 dígitos');
+                return;
+            }
+
+            // Simulación de consulta SUNAT
+            const btn = document.getElementById('btnSunat');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                // Datos simulados
+                document.getElementById('nombreCompleto').value = 'EMPRESA CONSTRUCTORA DEMO S.A.C.';
+
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+
+                // Mostrar notificación
+                alert('Datos consultados de SUNAT (simulación)');
+            }, 1500);
+        }
+
+        function toggleDescuento() {
+            const esFrecuente = document.getElementById('esFrecuente').checked;
+            const descuentoInput = document.getElementById('descuentoPreferencial');
+            descuentoInput.disabled = !esFrecuente;
+            if (!esFrecuente) descuentoInput.value = '0';
+        }
+
+        // Validación Bootstrap
+        (function () {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
+}

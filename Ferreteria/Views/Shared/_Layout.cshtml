@@ -1,0 +1,265 @@
+﻿@* FerreteriaApp.Web/Views/Shared/_Layout.cshtml *@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Ferretería Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+    
+    <link href="~/css/layout.css" rel="stylesheet" />
+    <link href="~/css/estilosgeneral.css" rel="stylesheet" />
+    <script src="~/js/jslayout.js"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            @{
+                var controller = ViewContext.RouteData.Values["Controller"]?.ToString();
+                var action = ViewContext.RouteData.Values["Action"]?.ToString();
+                var permisos = User.Claims.Where(c => c.Type == "Permisos").Select(c => c.Value).ToList();
+                string permisosPrimero = permisos.FirstOrDefault() ?? "";
+            }
+
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <!-- Small-screen topbar with toggle -->
+                <div class="col-12 d-flex d-md-none align-items-center bg-dark text-white p-2">
+                    <button class="btn btn-outline-light me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas" aria-label="Abrir menú">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="flex-grow-1">
+                        <strong class="h6 mb-0">Sistema de Gestión</strong>
+                    </div>
+                    <div class="text-end">
+                        <small class="d-block" style="color:rgba(255,255,255,.8)">Conectado:</small>
+                        <strong>@(User.Identity.Name ?? "Usuario")</strong>
+                    </div>
+                </div>
+
+                <!-- Offcanvas for small screens -->
+                <div class="offcanvas offcanvas-start sidebar2"   tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+                    <div class="offcanvas-header">
+                        <h5 class="offcanvas-title" id="sidebarOffcanvasLabel"><i class="fa-solid fa-gears me-2"></i>Sistema de Gestión</h5>
+                        <button type="button" class="btn-close text-reset" style="background-color:whitesmoke" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="offcanvas-body d-flex flex-column p-0">
+                        <nav class="nav flex-column mt-3 px-3">
+                            @if (@permisosPrimero.Contains( "Usuarios"))
+                            {
+                                <a class="nav-link @(controller == "Usuarios" ? "active" : "")" asp-controller="Usuarios" asp-action="Index">
+                                    <i class="fa-solid fa-users me-2"></i>Usuarios
+                                </a>
+                            }
+                            @if (permisosPrimero.Contains( "Ventas"))
+                            {
+                                <a class="nav-link @(controller == "Ventas" ? "active" : "")" asp-controller="Ventas" asp-action="Index">
+                                    <i class="fas fa-cash-register me-2"></i>Ventas
+                                </a>
+                            }
+
+                            @if (permisosPrimero.Contains( "Productos"))
+                            {
+                                <a class="nav-link @(controller == "Productos" && action != "StockBajo" ? "active" : "")" asp-controller="Productos" asp-action="Index">
+                                    <i class="fas fa-boxes me-2"></i>Productos
+                                </a>
+                            }
+
+                            @if (permisosPrimero.Contains( "Proveedores"))
+                            {
+                                <a class="nav-link @(controller == "Proveedores" ? "active" : "")" asp-controller="Proveedores" asp-action="Index">
+                                    <i class="fas fa-truck me-2"></i>Proveedores
+                                </a>
+                            }
+
+                            @if (permisosPrimero.Contains( "Clientes"))
+                            {
+                                <a class="nav-link @(controller == "Clientes" ? "active" : "")" asp-controller="Clientes" asp-action="Index">
+                                    <i class="fas fa-users"></i>Clientes
+                                </a>
+                            }
+
+                            @if (permisosPrimero.Contains( "Pedidos"))
+                            {
+                                <a class="nav-link @(controller == "Pedidos" ? "active" : "")" asp-controller="Pedidos" asp-action="Index">
+                                    <i class="fas fa-clipboard-list me-2"></i>Pedidos
+                                </a>
+                            }
+
+                            @if (permisosPrimero.Contains( "Dashboard"))
+                            {
+                                <a class="nav-link @(controller == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                                    <i class="fas fa-chart-line me-2"></i>Dashboard
+                                </a>
+                            }
+
+                            @if (permisosPrimero.Contains( "StockBajo"))
+                            {
+                                <a class="nav-link @(action == "StockBajo" ? "active" : "")" asp-controller="Productos" asp-action="StockBajo">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Stock Bajo
+                                </a>
+                            }
+
+                            @if (permisosPrimero.Contains("Reportes"))
+                            {
+                                <a class="nav-link @(controller == "Ventas" && action == "Reporte" ? "active" : "")" asp-controller="Ventas" asp-action="Reporte">
+                                    <i class="fas fa-chart-bar me-2"></i>Reportes
+                                </a>
+                            }
+                        </nav>
+
+                        <div class="mt-auto pt-3 border-top border-secondary px-3 pb-3">
+                            <div class="mb-2">
+                                <small style="color:white">Conectado:</small><br>
+                                <strong>@(User.Identity.Name ?? "Usuario")</strong>
+                            </div>
+                            <a class="nav-link text-danger p-0" asp-controller="Auth" asp-action="Logout">
+                                <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar for md+ screens (hidden on small) -->
+                <div class="col-md-2 sidebar p-0 d-none d-md-block">
+                    <div class="p-4 border-bottom border-secondary">
+                        <h4 class="mb-0"><i class="fa-solid fa-gears me-2"></i>Sistema de Gestión</h4>
+                    </div>
+                    <nav class=" nav flex-column mt-3">
+                        @if (@permisosPrimero.Contains( "Usuarios"))
+                        {
+                            <a class="nav-link @(controller == "Usuarios" ? "active" : "")" asp-controller="Usuarios" asp-action="Index">
+                                <i class="fa-solid fa-users me-2"></i>Usuarios
+                            </a>
+                        }
+                        @if (permisosPrimero.Contains( "Ventas"))
+                        {
+                            <a class="nav-link @(controller == "Ventas" ? "active" : "")" asp-controller="Ventas" asp-action="Index">
+                                <i class="fas fa-cash-register me-2"></i>Ventas
+                            </a>
+                        }
+
+                        @if (permisosPrimero.Contains( "Productos"))
+                        {
+                            <a class="nav-link @(controller == "Productos" && action != "StockBajo" ? "active" : "")" asp-controller="Productos" asp-action="Index">
+                                <i class="fas fa-boxes me-2"></i>Productos
+                            </a>
+                        }
+
+                        @if (permisosPrimero.Contains( "Proveedores"))
+                        {
+                            <a class="nav-link @(controller == "Proveedores" ? "active" : "")" asp-controller="Proveedores" asp-action="Index">
+                                <i class="fas fa-truck me-2"></i>Proveedores
+                            </a>
+                        }
+
+                        @if (permisosPrimero.Contains( "Clientes"))
+                        {
+                            <a class="nav-link @(controller == "Clientes" ? "active" : "")" asp-controller="Clientes" asp-action="Index">
+                                <i class="fas fa-users"></i>Clientes
+                            </a>
+                        }
+
+                        @if (permisosPrimero.Contains( "Pedidos"))
+                        {
+                            <a class="nav-link @(controller == "Pedidos" ? "active" : "")" asp-controller="Pedidos" asp-action="Index">
+                                <i class="fas fa-clipboard-list me-2"></i>Pedidos
+                            </a>
+                        }
+
+                        @if (permisosPrimero.Contains( "Dashboard"))
+                        {
+                            <a class="nav-link @(controller == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                                <i class="fas fa-chart-line me-2"></i>Dashboard
+                            </a>
+                        }
+
+                        @if (permisosPrimero.Contains( "StockBajo"))
+                        {
+                            <a class="nav-link @(action == "StockBajo" ? "active" : "")" asp-controller="Productos" asp-action="StockBajo">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Stock Bajo
+                            </a>
+                        }
+
+                        @if (permisosPrimero.Contains("Reportes"))
+                        {
+                            <a class="nav-link @(controller == "Ventas" && action == "Reporte" ? "active" : "")" asp-controller="Ventas" asp-action="Reporte">
+                                <i class="fas fa-chart-bar me-2"></i>Reportes
+                            </a>
+                        }
+                    </nav>
+
+                    <div class="mt-auto pt-3 border-top border-secondary position-absolute bottom-0 col-md-2">
+                        <div class="px-3 mb-2">
+                            <small style="color:white">Conectado:</small><br>
+                            <strong>@(User.Identity.Name ?? "Usuario")</strong>
+                        </div>
+                        <a class="nav-link text-danger" asp-controller="Auth" asp-action="Logout">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-10 main-content">
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["Success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @RenderBody()
+                </div>
+            }
+            else
+            {
+                <div class="col-12 p-0">
+                    @RenderBody()
+                </div>
+            }
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // Cerrar offcanvas cuando se pulsa cualquier enlace del menú (UX móvil)
+        (function () {
+            var offcanvasEl = document.getElementById('sidebarOffcanvas');
+            if (!offcanvasEl) return;
+
+            offcanvasEl.addEventListener('click', function (e) {
+                // Si se hace click en un enlace dentro del offcanvas, cerrarlo
+                var target = e.target;
+                while (target && target !== offcanvasEl) {
+                    if (target.matches && target.matches('a.nav-link')) {
+                        var bsOff = bootstrap.Offcanvas.getInstance(offcanvasEl) || new bootstrap.Offcanvas(offcanvasEl);
+                        bsOff.hide();
+                        return;
+                    }
+                    target = target.parentNode;
+                }
+            }, true);
+        })();
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

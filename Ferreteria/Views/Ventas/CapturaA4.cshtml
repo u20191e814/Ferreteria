@@ -1,0 +1,508 @@
+﻿@using Ferreteria.DTOs
+
+@model Ferreteria.DTOs.VentaDetailDto
+@{
+    Layout = null;
+    ViewData["Title"] = "Captura";
+    var tienda = ViewBag.Tienda as TiendaDto ?? new TiendaDto();
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Captura A4 - @Model.NumeroFactura</title>
+     
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f3f4f6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        #contenedor-captura {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Aquí se incluye TODO el CSS de PdfA4Moderno.cshtml */
+        .pdf-content {
+            padding: 20mm;
+            color: #1f2937;
+        }
+
+        /* ... (todo el CSS moderno del A4 anterior) ... */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #3b82f6;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brand-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .brand-info h1 {
+            font-size: 20pt;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .brand-info p {
+            font-size: 9pt;
+            color: #6b7280;
+            margin: 2px 0;
+        }
+
+        .invoice-badge {
+            text-align: right;
+        }
+
+        .badge-type {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 10pt;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .invoice-number {
+            font-size: 18pt;
+            font-weight: 700;
+            color: #111827;
+            font-family: 'Courier New', monospace;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .info-card {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+        }
+
+            .info-card h3 {
+                font-size: 8pt;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #6b7280;
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+        .client-name {
+            font-size: 12pt;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 6px;
+        }
+
+        .client-meta {
+            font-size: 9pt;
+            color: #4b5563;
+            margin: 3px 0;
+        }
+
+        .invoice-meta-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+
+            .invoice-meta-row:last-child {
+                border-bottom: none;
+            }
+
+        .invoice-meta-label {
+            color: #6b7280;
+            font-size: 9pt;
+        }
+
+        .invoice-meta-value {
+            font-weight: 500;
+            color: #111827;
+            font-size: 9pt;
+        }
+
+        .table-container {
+            margin-bottom: 30px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+
+        thead {
+            background: #111827;
+            color: white;
+        }
+
+        th {
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+            th.numeric {
+                text-align: right;
+            }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+            td.numeric {
+                text-align: right;
+                font-family: 'Courier New', monospace;
+            }
+
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .product-name {
+            font-weight: 500;
+            color: #111827;
+        }
+
+        .product-code {
+            font-size: 8pt;
+            color: #6b7280;
+            font-family: monospace;
+        }
+
+        .product-unit {
+            font-size: 8pt;
+            color: #6b7280;
+        }
+
+        .totals-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 30px;
+        }
+
+        .totals-card {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 280px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 10pt;
+        }
+
+            .total-row.discount {
+                color: #dc2626;
+            }
+
+            .total-row.grand-total {
+                font-size: 14pt;
+                font-weight: 700;
+                color: #111827;
+                padding-top: 12px;
+                margin-top: 8px;
+                border-top: 2px solid #3b82f6;
+            }
+
+        .payment-method {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #d1fae5;
+            color: #065f46;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 9pt;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .qr-container {
+            text-align: center;
+        }
+
+        .qr-placeholder {
+            width: 80px;
+            height: 80px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .qr-text {
+            font-size: 7pt;
+            color: #6b7280;
+            max-width: 100px;
+        }
+
+        .legal-text {
+            flex: 1;
+            margin-left: 30px;
+            font-size: 8pt;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .text-success {
+            color: #059669;
+        }
+
+        .text-primary {
+            color: #2563eb;
+        }
+
+        .text-danger {
+            color: #dc2626;
+        }
+
+        .text-muted {
+            color: #6b7280;
+        }
+
+        .font-mono {
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="contenedor-captura">
+        <div class="pdf-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="brand">
+                    <div class="brand-logo">T</div>
+                    <div class="brand-info">
+                        <h1>@tienda.nombre</h1>
+                        <p>RUC: @tienda.ruc</p>
+                        @if (!string.IsNullOrEmpty(@tienda.descripcion))
+                        {
+                            <p>@tienda.descripcion</p>
+                        }
+                        @if (!string.IsNullOrEmpty(@tienda.direccion))
+                        {
+                            <p> @tienda.direccion</p>
+                        }
+                        @if (!string.IsNullOrEmpty(@tienda.correo))
+                        {
+                            <p>✉️ @tienda.correo</p>
+                        }
+                        @if (!string.IsNullOrEmpty(@tienda.celular))
+                        {
+                            <p>📞 @tienda.celular </p>
+                        }
+                        @if (!string.IsNullOrEmpty(@tienda.whatsapp))
+                        {
+                            <p>🗨️ @tienda.whatsapp </p>
+                        }
+
+                        
+                    </div>
+                </div>
+                <div class="invoice-badge">
+                    <div class="badge-type">
+                        @(Model.NumeroFactura.StartsWith("F") ? "Factura Electrónica" : "Boleta de Venta")
+                    </div>
+                    <div class="invoice-number">@Model.NumeroFactura</div>
+                </div>
+            </div>
+
+            <!-- Info Grid -->
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>👤 Cliente</h3>
+                    <div class="client-name">@Model.ClienteNombre</div>
+                    <div class="client-meta">
+                        <strong>@(Model.ClienteDocumento?.Length == 11 ? "RUC" : "DNI"):</strong> @Model.ClienteDocumento
+                    </div>
+                    <div class="client-meta">@Model.ClienteDireccion</div>
+                    <div class="client-meta">@Model.ClienteTelefono | @Model.ClienteEmail</div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📅 Información de Venta</h3>
+                    <div class="invoice-meta-row">
+                        <span class="invoice-meta-label">Fecha Emisión:</span>
+                        <span class="invoice-meta-value">@Model.FechaVenta.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="invoice-meta-row">
+                        <span class="invoice-meta-label">Vendedor:</span>
+                        <span class="invoice-meta-value">@Model.VendedorNombre</span>
+                    </div>
+                    <div class="invoice-meta-row">
+                        <span class="invoice-meta-label">Estado:</span>
+                        <span class="invoice-meta-value text-success" style="text-transform: uppercase; font-weight: 600;">@Model.Estado</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 8%;">N°</th>
+                            <th style="width: 40%;">Descripción</th>
+                            <th class="numeric" style="width: 12%;">Cantidad</th>
+                            <th class="numeric" style="width: 15%;">P. Unit.</th>
+                            <th class="numeric" style="width: 10%;">Dscto.</th>
+                            <th class="numeric" style="width: 15%;">Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Detalles.Count; i++)
+                        {
+                            var det = Model.Detalles[i];
+                            <tr>
+                                <td class="font-mono text-muted">@(i + 1)</td>
+                                <td>
+                                    <div class="product-name">@det.ProductoNombre</div>
+                                    <div class="product-code">Código: @det.ProductoCodigo</div>
+                                    <div class="product-unit">Unidad: @det.UnidadMedida</div>
+                                </td>
+                                <td class="numeric">@det.Cantidad.ToString("N2")</td>
+                                <td class="numeric">S/ @det.PrecioUnitario.ToString("N2")</td>
+                                <td class="numeric text-danger">
+                                    @(det.Descuento > 0 ? $"-S/ {det.Descuento:N2}" : "-")
+                                </td>
+                                <td class="numeric font-mono">S/ @det.SubTotal.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Totales -->
+            <div class="totals-section">
+                <div class="totals-card">
+                    <div class="total-row">
+                        <span class="text-muted">SubTotal:</span>
+                        <span class="font-mono">S/ @Model.SubTotal.ToString("N2")</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="text-muted">IGV (18%):</span>
+                        <span class="font-mono">S/ @Model.Impuestos.ToString("N2")</span>
+                    </div>
+                    @if (Model.Descuento > 0)
+                    {
+                        <div class="total-row discount">
+                            <span>Descuento Total:</span>
+                            <span class="font-mono">-S/ @Model.Descuento.ToString("N2")</span>
+                        </div>
+                    }
+                    <div class="total-row grand-total">
+                        <span>TOTAL A PAGAR:</span>
+                        <span class="font-mono text-primary">S/ @Model.Total.ToString("N2")</span>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 15px;">
+                        <div class="payment-method">
+                            💳 @Model.MetodoPago
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            @* <div class="footer-section">
+                <div class="qr-container">
+                    <div class="qr-placeholder">
+                        <svg width="40" height="40" fill="#9ca3af" viewBox="0 0 16 16">
+                            <path d="M2 2h5v5H2V2zm1 1v3h3V3H3zM2 9h5v5H2V9zm1 1v3h3v-3H3zM9 2h5v5H9V2zm1 1v3h3V3h-3zM9 9h5v5H9V9zm1 1v3h3v-3h-3z" />
+                        </svg>
+                    </div>
+                    <div class="qr-text">Escanea para verificar</div>
+                </div>
+
+                <div class="legal-text">
+                    <p><strong>Representación impresa de la @(Model.NumeroFactura.StartsWith("F") ? "Factura Electrónica" : "Boleta de Venta")</strong></p>
+                    <p>Para consultar el comprobante ingrese a <strong>www.facturacion.gob.pe</strong></p>
+                    <p style="margin-top: 10px; font-size: 7pt; color: #9ca3af;">
+                        Autorizado mediante Resolución de Intendencia N° 123-2023/SUNAT
+                    </p>
+                </div>
+            </div> *@
+
+            @if (!string.IsNullOrEmpty(Model.Observaciones))
+            {
+                <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    <strong style="font-size: 8pt; color: #92400e; text-transform: uppercase;">Observaciones:</strong>
+                    <p style="margin-top: 5px; font-size: 9pt; color: #78350f;">@Model.Observaciones</p>
+                </div>
+            }
+        </div>
+    </div>
+</body>
+</html>

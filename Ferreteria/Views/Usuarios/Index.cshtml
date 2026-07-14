@@ -1,0 +1,186 @@
+﻿@using Ferreteria.DTOs
+@using Ferreteria.Entities
+@model IEnumerable< UsuarioListDto>
+@{
+    ViewData["Title"] = "Usuarios";
+    var busqueda = ViewBag.Busqueda as string ?? "";
+    var rol = ViewBag.Rol as int? ?? 0;
+    var activo = ViewBag.Activo as bool?; 
+    var totalItems = ViewBag.TotalItems as int? ?? 0; 
+    var roles = ViewBag.Roles as List<RolDto> ?? new List<RolDto>();
+}
+
+ 
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold gradient-text">Gestión de usuarios</h2>
+            <p class="text-muted mb-0">Administración de usuarios del sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary btn-modern">
+                <i class="fas fa-plus me-2"></i>Nuevo Usuario
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card filter-card mb-4 border-0">
+        <div class="card-body p-4">
+            <form method="get" id="filterForm">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Buscar</label>
+                        <div class="input-group">
+
+                            <input type="text" name="busqueda" class="form-control"
+                                   placeholder="Nombre o email..." value="@busqueda">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Rol</label>
+                        <select name="rol" class="form-select">
+                            <option value="">Todos los roles</option>
+                            @foreach (var r in roles)
+                            {
+                                <option value="@r.Id" selected="@(rol == r.Id)">@r.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                     
+                     
+                    <div class="col-md-1 d-flex align-items-end justify-content-end gap-1">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Buscar
+                        </button>
+                    </div>
+                    
+                
+                </div>
+          
+                 
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Usuarios -->
+    <div class="card table-modern">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tablaUsuarios">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Usuario</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Telefono</th>
+                            <th>última conexión</th>
+                            <th>Fecha de creación</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            @foreach (var item in Model)
+                            {
+                                var iniciales = string.Join("", item.NombreCompleto?.Split(' ').Take(2).Select(n => n[0]) ?? new List<char>());
+                                 
+
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="user-avatar me-3">
+                                                @iniciales
+                                            </div>
+                                            <div>
+                                                <span class="fw-semibold">@item.NombreCompleto</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">@item.Email</span>
+                                    </td>
+                                    <td>
+                                        <span >@item.Rol</span>
+                                    </td>
+                                    <td>
+                                        @if (item.Activo)
+                                        {
+                                            <span class="badge bg-success">Activo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        }
+                                    </td>
+                                    <td>  @item.Telefono </td>
+                                    <td> @item.UltimoAcceso.ToString("dd-MM-yyyy HH:mm:ss") </td>
+                                    <td>@item.FechaCreacion.ToString("dd-MM-yyyy HH:mm:ss") </td>
+                                    <td class="text-center">
+                                        <a asp-action="Edit" asp-route-id="@item.Id"
+                                           class="btn btn-sm btn-primary rounded-pill px-3" title="Editar usuario">
+                                            <i class="fas fa-edit me-1"></i>Editar
+                                        </a>
+                                        <button class="btn btn-sm btn-danger rounded-pill px-3" onclick="EliminarUsuario(@item.Id)" title="Eliminar usuario">
+                                            <i class="fas fa-trash-alt me-1"></i>Eliminar
+                                        </button>
+                                         
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="fas fa-users-slash fa-3x mb-3 opacity-25"></i>
+                                    <p class="mb-0">No se encontraron usuarios con los filtros aplicados</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+         
+    </div>
+ 
+
+@section Scripts {
+    <script>
+         
+
+        function EliminarUsuario (id){
+                 
+             swal({
+             title: "¿Estás seguro de eliminar el usuario?",
+             text: "¡No podrás revertir esto!",
+             type: "warning",
+             showCancelButton: true,
+             confirmButtonColor: "#DD6B55",
+             confirmButtonText: "¡Sí!",
+             cancelButtonText: "¡No!",
+             closeOnConfirm: false,
+             closeOnCancel: false
+             }, function(isConfirm) {
+                 if (isConfirm) {
+
+                     $.ajax(
+                         {
+                         type:'POST',url:'/Usuarios/Delete?id='+ id ,
+                         success:function(data)
+                         {
+                               location.reload();
+
+                         }
+                     });
+
+                 } else {
+                     swal("Cancelado", "El servicio no ha sido eliminado.", "error");
+                 }
+             });
+         }
+    </script>
+}

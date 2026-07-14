@@ -1,0 +1,441 @@
+﻿@using Ferreteria.DTOs
+@model Ferreteria.DTOs.VentaDetailDto
+@{
+    Layout = null;
+    ViewData["Title"] = "Captura";
+    var tienda = ViewBag.Tienda as TiendaDto ?? new TiendaDto();
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Captura Ticket - @Model.NumeroFactura</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f3f4f6;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        #contenedor-captura {
+            width: 80mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 8mm 5mm;
+        }
+
+        /* CSS del ticket moderno */
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 12px;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .company-name {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .company-info {
+            font-size: 8pt;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .badge-container {
+            text-align: center;
+            margin: 12px 0;
+        }
+
+        .badge-type {
+            display: inline-block;
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1.5px solid #3b82f6;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 9pt;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .invoice-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13pt;
+            font-weight: 700;
+            color: #111827;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        .info-section {
+            margin: 12px 0;
+            padding: 10px 0;
+            border-bottom: 1px dashed #d1d5db;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 8.5pt;
+        }
+
+        .info-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #111827;
+            font-weight: 600;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        .client-name {
+            font-size: 10pt;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .items-header {
+            font-size: 8pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+            margin: 12px 0 8px;
+            text-align: center;
+            padding: 6px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+
+        .item {
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dotted #e5e7eb;
+        }
+
+            .item:last-child {
+                border-bottom: none;
+            }
+
+        .item-name {
+            font-weight: 600;
+            font-size: 9pt;
+            color: #111827;
+            margin-bottom: 2px;
+            line-height: 1.3;
+        }
+
+        .item-meta {
+            font-size: 7.5pt;
+            color: #6b7280;
+            margin-bottom: 3px;
+        }
+
+        .item-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 8.5pt;
+        }
+
+        .item-calc {
+            color: #4b5563;
+        }
+
+        .item-total {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .totals-section {
+            margin: 12px 0;
+            padding: 12px 0;
+            border-top: 2px solid #3b82f6;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 8.5pt;
+        }
+
+            .total-row.discount {
+                color: #dc2626;
+            }
+
+            .total-row.grand-total {
+                font-size: 12pt;
+                font-weight: 700;
+                color: #111827;
+                margin-top: 8px;
+                padding-top: 8px;
+                border-top: 1px dashed #d1d5db;
+            }
+
+        .total-amount {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .payment-badge {
+            text-align: center;
+            margin: 12px 0;
+        }
+
+        .payment-method {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #d1fae5;
+            color: #065f46;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 8pt;
+            font-weight: 600;
+        }
+
+        .qr-section {
+            text-align: center;
+            margin: 15px 0;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .qr-placeholder {
+            width: 70px;
+            height: 70px;
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-text {
+            font-size: 7pt;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px dashed #d1d5db;
+        }
+
+        .footer-brand {
+            font-size: 10pt;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .footer-text {
+            font-size: 7.5pt;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .cut-line {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 2px dashed #9ca3af;
+            text-align: center;
+            font-size: 7pt;
+            color: #9ca3af;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="contenedor-captura">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-icon">T</div>
+            <div class="company-name">@tienda.nombre</div>
+            <div class="company-info">
+                RUC: @tienda.ruc<br>
+                 
+                @if (!string.IsNullOrEmpty(@tienda.descripcion))
+                {
+                    @tienda.descripcion
+                
+                    <br>
+                }
+                @if (!string.IsNullOrEmpty(@tienda.direccion))
+                {
+                    @tienda.direccion
+                
+                    <br>
+                }
+                @if (!string.IsNullOrEmpty(@tienda.correo))
+                {
+                    @tienda.correo <br>
+                }
+                @if (!string.IsNullOrEmpty(@tienda.celular))
+                {
+                    @tienda.celular <br>
+                }
+                @if (!string.IsNullOrEmpty(@tienda.whatsapp))
+                {
+                    @tienda.whatsapp <br>
+                }
+                
+            </div>
+        </div>
+
+        <!-- Badge -->
+        <div class="badge-container">
+            <div class="badge-type">
+                @(Model.NumeroFactura.StartsWith("F") ? "Factura" : "Boleta")
+            </div>
+            <div class="invoice-number">@Model.NumeroFactura</div>
+        </div>
+
+        <!-- Info -->
+        <div class="info-section">
+            <div class="info-row">
+                <span class="info-label">Fecha:</span>
+                <span class="info-value font-mono">@Model.FechaVenta.ToString("dd/MM/yy HH:mm")</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Vendedor:</span>
+                <span class="info-value">@Model.VendedorNombre</span>
+            </div>
+        </div>
+
+        <!-- Cliente -->
+        <div class="info-section" style="border-bottom-style: solid; border-bottom-color: #3b82f6;">
+            <div class="client-name">@Model.ClienteNombre</div>
+            @if (!string.IsNullOrEmpty(Model.ClienteDocumento))
+            {
+                <div class="info-row">
+                    <span class="info-label">@(Model.ClienteDocumento.Length == 11 ? "RUC" : "DNI"):</span>
+                    <span class="info-value font-mono">@Model.ClienteDocumento</span>
+                </div>
+            }
+        </div>
+
+        <!-- Items -->
+        <div class="items-header">DETALLE DE PRODUCTOS</div>
+
+        @foreach (var det in Model.Detalles)
+        {
+            <div class="item">
+                <div class="item-name">@det.ProductoNombre</div>
+                <div class="item-meta">@det.ProductoCodigo • @det.UnidadMedida</div>
+                <div class="item-details">
+                    <span class="item-calc">
+                        @det.Cantidad.ToString("N2") x S/ @det.PrecioUnitario.ToString("N2")
+                        @if (det.Descuento > 0)
+                        {
+                            <span style="color: #dc2626;"> (-S/ @det.Descuento.ToString("N2"))</span>
+                        }
+                    </span>
+                    <span class="item-total">S/ @det.SubTotal.ToString("N2")</span>
+                </div>
+            </div>
+        }
+
+        <!-- Totales -->
+        <div class="totals-section">
+            <div class="total-row">
+                <span class="text-muted">SubTotal:</span>
+                <span class="total-amount">S/ @Model.SubTotal.ToString("N2")</span>
+            </div>
+            <div class="total-row">
+                <span class="text-muted">IGV (18%):</span>
+                <span class="total-amount">S/ @Model.Impuestos.ToString("N2")</span>
+            </div>
+            @if (Model.Descuento > 0)
+            {
+                <div class="total-row discount">
+                    <span>Descuento:</span>
+                    <span class="total-amount">-S/ @Model.Descuento.ToString("N2")</span>
+                </div>
+            }
+            <div class="total-row grand-total">
+                <span>TOTAL</span>
+                <span class="total-amount">S/ @Model.Total.ToString("N2")</span>
+            </div>
+        </div>
+
+        <!-- Pago -->
+        <div class="payment-badge">
+            <div class="payment-method">
+                <span>💳</span>
+                <span>@Model.MetodoPago</span>
+            </div>
+        </div>
+
+        @* <!-- QR -->
+        <div class="qr-section">
+            <div class="qr-placeholder">
+                <svg width="35" height="35" fill="#9ca3af" viewBox="0 0 16 16">
+                    <path d="M2 2h5v5H2V2zm1 1v3h3V3H3zM2 9h5v5H2V9zm1 1v3h3v-3H3zM9 2h5v5H9V2zm1 1v3h3V3h-3zM9 9h5v5H9V9zm1 1v3h3v-3h-3z" />
+                </svg>
+            </div>
+            <div class="qr-text">
+                Escanea para verificar<br>
+                facturación.gob.pe
+            </div>
+        </div> *@
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-brand">¡Gracias por su preferencia!</div>
+            @* <div class="footer-text">
+                Representación impresa de<br>
+                comprobante electrónico<br>
+                Autorizado por SUNAT
+            </div> *@
+        </div>
+
+        <div class="cut-line">
+            --- CORTE AQUÍ ---
+        </div>
+    </div>
+</body>
+</html>

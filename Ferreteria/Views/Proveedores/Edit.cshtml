@@ -1,0 +1,196 @@
+﻿@model Ferreteria.DTOs.ProveedorUpdateDto
+@{
+    ViewData["Title"] = "Editar Proveedor";
+    var cantidadProductos = ViewBag.CantidadProductos as int? ?? 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+         
+        <h2 class="mb-0"><i class="fas fa-edit me-2 text-primary"></i>Modificar información del proveedor</h2>
+        
+    </div>
+    <div class="d-flex gap-2">
+       
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        @* Info del proveedor *@
+        <div class="alert alert-info mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-muted d-block">ID del Proveedor</small>
+                    <strong class="fs-5">#@Model.Id</strong>
+                </div>
+                <div class="text-center">
+                    <small class="text-muted d-block">Productos Asociados</small>
+                    <strong class="fs-4 @(cantidadProductos > 0 ? "text-primary" : "text-muted")">
+                        @cantidadProductos
+                    </strong>
+                </div>
+                <div class="text-end">
+                    @if (cantidadProductos > 0)
+                    {
+                        <a asp-controller="Productos" asp-action="Index" asp-route-proveedorId="@Model.Id" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-box me-1"></i>Ver productos
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <form asp-action="Edit" method="post" class="needs-validation" novalidate id="formEditar">
+            <input type="hidden" asp-for="Id" />
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-building me-2 text-info"></i>Información del Proveedor</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-4">
+                        <label asp-for="Nombre" class="form-label fw-bold fs-5">
+                            Nombre del Proveedor <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-building text-muted"></i>
+                            </span>
+                            <input asp-for="Nombre" class="form-control"
+                                   placeholder="Nombre del proveedor"
+                                   maxlength="150" required id="nombreProveedor"
+                                   onblur="validarNombreUnico()">
+                        </div>
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                        <div id="nombreFeedback" class="form-text mt-2"></div>
+
+                        @* Indicador de validación *@
+                        <div id="validacionNombre" class="mt-2 d-none">
+                            <span class="spinner-border spinner-border-sm text-primary me-2"></span>
+                            <span class="text-muted">Verificando...</span>
+                        </div>
+                    </div>
+
+                    @* Advertencia si tiene productos *@
+                    @if (cantidadProductos > 0)
+                    {
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Advertencia</h6>
+                            <p class="mb-0 small">
+                                Este proveedor tiene <strong>@cantidadProductos producto(s)</strong> asociados.
+                                Si cambia el nombre, los productos mantendrán la asociación pero se actualizará
+                                la referencia en todos los registros.
+                            </p>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-white border-top-0 p-4">
+                    <div class="d-flex justify-content-end">
+                        
+                        <button type="submit" class="btn btn-primary btn-lg" id="btnGuardar">
+                            <i class="fas fa-save me-2"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    @* Sidebar *@
+    <div class="col-lg-4">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h6 class="mb-0"><i class="fas fa-chart-pie me-2 text-info"></i>Resumen</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 80px; height: 80px;">
+                        <i class="fas fa-truck fa-2x text-info"></i>
+                    </div>
+                    <h5 class="mb-1">@Model.Nombre</h5>
+                    <span class="badge bg-secondary">ID: @Model.Id</span>
+                </div>
+ 
+                 
+            </div>
+        </div>
+
+        @* Acciones rápidas *@
+        <div class="card mt-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h6 class="mb-0"><i class="fas fa-bolt me-2 text-warning"></i>Acciones Rápidas</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="d-grid gap-2">
+                    
+                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-trash me-2"></i>Eliminar proveedor
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const proveedorId = @Model.Id;
+        const nombreOriginal = '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(Model.Nombre))';
+
+        // Validación de nombre único vía AJAX
+        async function validarNombreUnico() {
+            const nombre = document.getElementById('nombreProveedor').value.trim();
+            const feedback = document.getElementById('nombreFeedback');
+            const indicador = document.getElementById('validacionNombre');
+
+            // No validar si no cambió o está vacío
+            if (nombre.length < 2 || nombre === nombreOriginal) {
+                feedback.innerHTML = '<span class="text-muted"><i class="fas fa-info-circle me-1"></i>Nombre actual</span>';
+                return;
+            }
+
+            // Mostrar indicador
+            indicador.classList.remove('d-none');
+            feedback.classList.add('d-none');
+
+            try {
+                const response = await fetch(`/Proveedores/ValidarNombre?nombre=${encodeURIComponent(nombre)}&excluirId=${proveedorId}`);
+                const result = await response.json();
+
+                indicador.classList.add('d-none');
+                feedback.classList.remove('d-none');
+
+                if (result.valido) {
+                    feedback.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Nombre disponible</span>';
+                } else {
+                    feedback.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>' + result.mensaje + '</span>';
+                }
+            } catch (error) {
+                indicador.classList.add('d-none');
+                feedback.classList.remove('d-none');
+            }
+        }
+
+        // Validación Bootstrap
+        (function () {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
+}

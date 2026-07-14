@@ -1,0 +1,154 @@
+﻿@model Ferreteria.DTOs.ProveedorCreateDto
+@{
+    ViewData["Title"] = "Nuevo Proveedor";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        
+        <h2 class="mb-0">Nuevo proveedor</h2>
+ 
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Volver
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form asp-action="Create" method="post" class="needs-validation" novalidate id="formProveedor">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-building me-2 text-info"></i>Información del Proveedor</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-4">
+                        <label asp-for="Nombre" class="form-label fw-bold fs-5">
+                            Nombre del Proveedor <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-building text-muted"></i>
+                            </span>
+                            <input asp-for="Nombre" class="form-control"
+                                   placeholder="Ingrese nombre del proveedor ... "
+                                   maxlength="150" required id="nombreProveedor"
+                                   onblur="validarNombreUnico()">
+                        </div>
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                        <div id="nombreFeedback" class="form-text mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Ingrese el nombre completo o razón social del proveedor (máximo 150 caracteres)
+                        </div>
+
+                        @* Indicador de validación *@
+                        <div id="validacionNombre" class="mt-2 d-none">
+                            <span class="spinner-border spinner-border-sm text-primary me-2"></span>
+                            <span class="text-muted">Verificando disponibilidad...</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading"><i class="fas fa-lightbulb me-2"></i>Consejo</h6>
+                        <p class="mb-0 small">
+                            Use el nombre completo o razón social oficial del proveedor para facilitar
+                            las búsquedas futuras y mantener consistencia en el sistema.
+                        </p>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-top-0 p-4">
+                    <div class="d-flex justify-content-end">
+                         
+                        <button type="submit" class="btn btn-success btn-lg" id="btnGuardar">
+                            <i class="fas fa-save me-2"></i>Guardar Proveedor
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    @* Sidebar informativo *@
+    <div class="col-lg-4">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2 text-info"></i>¿Qué es un proveedor?</h6>
+            </div>
+            <div class="card-body p-4">
+                <p class="small text-muted mb-3">
+                    Un proveedor es la empresa o persona que suministra los productos
+                    a su tienda. Asociar proveedores permite:
+                </p>
+                <ul class="list-unstyled small mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Identificar origen de productos
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Generar reportes de compras por proveedor
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Facilitar reordenamiento de stock
+                    </li>
+                    <li>
+                        <i class="fas fa-check text-success me-2"></i>
+                        Mantener historial de proveedores
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Validación de nombre único vía AJAX
+        async function validarNombreUnico() {
+            const nombre = document.getElementById('nombreProveedor').value.trim();
+            const feedback = document.getElementById('nombreFeedback');
+            const indicador = document.getElementById('validacionNombre');
+
+            if (nombre.length < 2) return;
+
+            // Mostrar indicador
+            indicador.classList.remove('d-none');
+            feedback.classList.add('d-none');
+
+            try {
+                const response = await fetch(`/Proveedores/ValidarNombre?nombre=${encodeURIComponent(nombre)}`);
+                const result = await response.json();
+
+                indicador.classList.add('d-none');
+                feedback.classList.remove('d-none');
+
+                if (result.valido) {
+                    feedback.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Nombre disponible</span>';
+                } else {
+                    feedback.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>' + result.mensaje + '</span>';
+                }
+            } catch (error) {
+                indicador.classList.add('d-none');
+                feedback.classList.remove('d-none');
+            }
+        }
+
+        // Validación Bootstrap
+        (function () {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
+}

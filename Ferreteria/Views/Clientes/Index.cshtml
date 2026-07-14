@@ -1,0 +1,264 @@
+﻿@* FerreteriaApp.Web/Views/Clientes/Index.cshtml *@
+@model IEnumerable<Ferreteria.Entities.Cliente>
+@{
+    ViewData["Title"] = "Gestión de clientes";
+    var filtroTipo = Context.Request.Query["tipoDocumento"].ToString();
+    var filtroTexto = Context.Request.Query["busqueda"].ToString();
+    var filtroFrecuente = Context.Request.Query["esFrecuente"].ToString();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">Clientes</h2>
+        <p class="text-muted mb-0">Gestión de clientes y empresas</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-user-plus me-2"></i>Nuevo Cliente
+    </a>
+</div>
+
+@* Filtros *@
+<div class="card filter-card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <div class="search-box">
+                    
+                    <input type="text" name="busqueda" class="form-control"
+                           placeholder="Buscar por nombre, DNI, RUC..."
+                           value="@filtroTexto">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="tipoDocumento" class="form-select">
+                    <option value="">Todos los docs.</option>
+                    <option value="DNI" selected="@(filtroTipo == "DNI")">DNI</option>
+                    <option value="RUC" selected="@(filtroTipo == "RUC")">RUC</option>
+                    <option value="CE" selected="@(filtroTipo == "CE")">Carnet Extranjería</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="esFrecuente" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="true" selected="@(filtroFrecuente == "true")">Clientes frecuentes</option>
+                    <option value="false" selected="@(filtroFrecuente == "false")">Ocasionales</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn  btn-primary">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+             
+        </form>
+    </div>
+</div>
+
+@* Resumen *@
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Clientes</h6>
+                        <h3 class="mb-0">@(Model?.Count() ?? 0)</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-users text-primary fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-2">Clientes Frecuentes</h6>
+                        <h3 class="mb-0">@(Model?.Count(c => c.EsFrecuente) ?? 0)</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-star text-success fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-2">Personas (DNI)</h6>
+                        <h3 class="mb-0">@(Model?.Count(c => c.TipoDocumento == "DNI") ?? 0)</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-id-card text-warning fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-2">Empresas (RUC)</h6>
+                        <h3 class="mb-0">@(Model?.Count(c => c.TipoDocumento == "RUC") ?? 0)</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-building text-info fa-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Tabla de clientes *@
+<div class="table-container">
+    <table class="table table-hover mb-0" id="tablaClientes">
+        <thead class="table-light">
+            <tr>
+                <th class="ps-4">Cliente</th>
+                <th>Documento</th>
+                <th>Contacto</th>
+                <th>Dirección</th>
+                <th>Tipo</th>
+                <th>Descuento</th>
+                <th class="text-center">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                @foreach (var item in Model)
+                {
+                    var badgeClass = item.TipoDocumento switch
+                    {
+                        "DNI" => "badge-dni",
+                        "RUC" => "badge-ruc",
+                        "CE" => "badge-ce",
+                        _ => "bg-secondary"
+                    };
+
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3 d-flex align-items-center justify-content-center"
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas @(item.TipoDocumento == "RUC" ? "fa-building" : "fa-user") text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">@item.NombreCompleto</h6>
+                                    <small class="text-muted">Registrado: @item.FechaCreacion.ToString("dd/MM/yyyy")</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="tipo-doc-badge @badgeClass">@item.TipoDocumento</span>
+                            <div class="mt-1"><code>@item.NumeroDocumento</code></div>
+                        </td>
+                        <td>
+                            <div><i class="fas fa-phone text-muted me-2"></i>@item.Telefono</div>
+                            @if (!string.IsNullOrEmpty(item.Email))
+                            {
+                                <div class="small"><i class="fas fa-envelope text-muted me-2"></i>@item.Email</div>
+                            }
+                        </td>
+                        <td>
+                            <span class="text-muted">@(item.Direccion?.Length > 30 ? item.Direccion.Substring(0, 30) + "..." : item.Direccion)</span>
+                        </td>
+                        <td>
+                            @if (item.EsFrecuente)
+                            {
+                                <span class="badge bg-success"><i class="fas fa-star me-1"></i>Frecuente</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-dark">Ocasional</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.DescuentoPreferencial > 0)
+                            {
+                                <span class="badge bg-warning text-dark">@item.DescuentoPreferencial%</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        onclick="confirmarEliminar(@item.Id, '@item.NombreCompleto')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="fas fa-users-slash fa-3x mb-3 opacity-25"></i>
+                        <p>No se encontraron clientes</p>
+                        <a asp-action="Create" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-2"></i>Crear primer cliente
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@* Modal Eliminar *@
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Delete" method="post">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="clienteIdEliminar" />
+                    <p>¿Está seguro de que desea eliminar al cliente <strong id="clienteNombreEliminar"></strong>?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Esta acción no se puede deshacer. El cliente ya no aparecerá en las búsquedas pero sus ventas históricas se mantendrán.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                  @*   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button> *@
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Sí, Eliminar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmarEliminar(id, nombre) {
+            document.getElementById('clienteIdEliminar').value = id;
+            document.getElementById('clienteNombreEliminar').textContent = nombre;
+            new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+        }
+    </script>
+}

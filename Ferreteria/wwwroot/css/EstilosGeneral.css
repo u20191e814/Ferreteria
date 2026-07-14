@@ -1,0 +1,118 @@
+﻿:root {
+    --primary-gradient: linear-gradient(135deg, #1e293b 0%, #353436 100%);
+    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --info-gradient: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
+}
+
+.stat-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    border-radius: 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-gradient);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-card.success::before {
+        background: var(--success-gradient);
+    }
+
+    .stat-card.info::before {
+        background: var(--info-gradient);
+    }
+
+    .stat-card.warning::before {
+        background: var(--warning-gradient);
+    }
+
+.filter-card {
+    background: var(--primary-gradient);
+    border-radius: 20px;
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+
+.table-modern {
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+    .table-modern thead {
+        background: var(--shadow-sm);
+        color: white;
+    }
+
+    .table-modern th {
+        font-weight: 600;
+        border: none;
+        padding: 18px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+
+    .table-modern td {
+        padding: 16px 18px;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+
+    .table-modern tbody tr:hover {
+        background: linear-gradient(90deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%);
+        transform: scale(1.01);
+        transition: all 0.2s;
+    }
+
+.badge-modern {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.page-link {
+    border-radius: 12px;
+    margin: 0 4px;
+    border: none;
+    color: #667eea;
+    font-weight: 600;
+    padding: 10px 16px;
+    transition: all 0.2s;
+}
+
+.page-item.active .page-link {
+    background: var(--primary-gradient);
+    box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+}
+
+.page-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+

@@ -1,0 +1,930 @@
+﻿@model Ferreteria.DTOs.PedidoCreateDto
+@{
+    ViewData["Title"] = "Nuevo Pedido";
+}
+
+
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        
+        <h2 class="mb-0">Nuevo pedido de materiales para cliente</h2>
+ 
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Volver al listado
+    </a>
+</div>
+
+<form asp-action="Create" method="post" id="formPedido" class="needs-validation" novalidate>
+    <div class="row g-4">
+        @* Columna izquierda *@
+        <div class="col-lg-8">
+            @* Card Cliente con búsqueda desde BD *@
+            <div class="card mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
+                </div>
+                <div class="card-body p-4">
+                    <input type="hidden" asp-for="ClienteId" id="clienteId" required />
+                    
+                    @* Buscador de cliente *@
+                    <div class="mb-3 position-relative">
+                        <label class="form-label fw-bold">Buscar Cliente <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control" id="buscadorCliente" 
+                                   placeholder="Escriba nombre, DNI, RUC o email para buscar..." 
+                                   autocomplete="off">
+                            <button type="button" class="btn btn-outline-primary" onclick="mostrarModalClientes()" title="Ver todos los clientes">
+                                <i class="fas fa-list"></i>
+                            </button>
+                            <a asp-controller="Clientes" asp-action="Create" target="_blank" class="btn btn-outline-success" title="Nuevo cliente">
+                                <i class="fas fa-plus"></i>
+                            </a>
+                        </div>
+                        <div class="form-text">Mínimo 2 caracteres para buscar en la base de datos</div>
+                        
+                        @* Indicador de carga *@
+                        <div id="indicadorCarga" class="position-absolute end-0 top-50 mt-4 me-5 d-none">
+                            <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                            <span class="small text-muted ms-1">Buscando...</span>
+                        </div>
+                    </div>
+                    
+                    <div id="resultadosBusqueda" class="list-group shadow-lg position-absolute w-100" 
+                         style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none; margin-top: -10px;">
+                    </div>
+
+                    <div id="infoCliente" class="d-none">
+                        <div class="alert alert-success p-3 mb-0 border-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="w-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0 fs-5" id="clienteNombre">-</h6>
+                                        <span class="badge bg-primary" id="clienteTipoDocBadge">-</span>
+                                    </div>
+                                    <div class="row g-2 small">
+                                        <div class="col-md-4">
+                                            <span class="text-muted">Documento:</span>
+                                            <strong id="clienteNumDoc" class="d-block">-</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <span class="text-muted">Teléfono:</span>
+                                            <strong id="clienteTelefono" class="d-block">-</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <span class="text-muted">Email:</span>
+                                            <strong id="clienteEmail" class="d-block">-</strong>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 pt-2 border-top">
+                                        <span class="text-muted">Dirección:</span>
+                                        <span id="clienteDireccion" class="ms-1">-</span>
+                                    </div>
+                                    @* Descuento preferencial *@
+                                    <div id="clienteDescuento" class="mt-2 d-none">
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-star me-1"></i>
+                                            Cliente frecuente: <strong id="porcentajeDescuento">0%</strong> de descuento
+                                        </span>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-success ms-3" onclick="cambiarCliente()" title="Cambiar cliente">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sinCliente" class="text-center py-4 text-muted border rounded bg-light">
+                        <i class="fas fa-user-slash fa-2x mb-2 opacity-25"></i>
+                        <p class="mb-0">Ningún cliente seleccionado. Busque o cree un cliente.</p>
+                    </div>
+
+                    @* Fecha de entrega *@
+                    <div class="mt-3">
+                        <label asp-for="FechaEstimadaEntrega" class="form-label fw-bold">
+                            Fecha Estimada de Entrega
+                        </label>
+                        <input asp-for="FechaEstimadaEntrega" type="date" class="form-control" 
+                               id="fechaEntrega" min="@DateTime.Now.ToString("yyyy-MM-dd")" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-boxes me-2 text-success"></i>Productos del Pedido</h5>
+                    <button type="button" class="btn btn-success" onclick="mostrarModalProductos()">
+                        <i class="fas fa-plus me-2"></i>Agregar Productos
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="tablaProductos">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4" style="width: 35%;">Producto</th>
+                                    <th style="width: 12%;">Cantidad</th>
+                                    <th style="width: 10%;">Unidad</th>
+                                    <th style="width: 15%;">P. Unit.</th>
+                                    <th style="width: 12%;">Descuento</th>
+                                    <th style="width: 15%;">Subtotal</th>
+                                    <th style="width: 6%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyProductos">
+                                @* Filas se agregan dinámicamente desde BD *@
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    @* Mensaje cuando no hay productos *@
+                    <div id="sinProductos" class="text-center py-5 text-muted">
+                        <i class="fas fa-shopping-basket fa-3x mb-3 opacity-25"></i>
+                        <p>No hay productos agregados al pedido</p>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="mostrarModalProductos()">
+                            <i class="fas fa-plus me-2"></i>Buscar y agregar productos
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-comment-alt me-2 text-info"></i>Observaciones</h5>
+                </div>
+                <div class="card-body p-4">
+                    <textarea asp-for="Observaciones" class="form-control" rows="3" 
+                              placeholder="Instrucciones especiales, dirección de entrega, condiciones especiales..."
+                              maxlength="500" id="observaciones"  ></textarea>
+                    <div class="form-text d-flex justify-content-between mt-1">
+                        <span>Información adicional para el pedido</span>
+                        <span id="contadorObs">0/500</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px; z-index: 100;">
+                <div class="card-header bg-primary text-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Resumen del Pedido</h5>
+                </div>
+                <div class="card-body p-4">
+                    @* Info pedido *@
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <span class="text-muted">N° Pedido</span>
+                        <span class="badge bg-light text-dark fs-6">AUTO-GENERADO</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <span class="text-muted">Fecha Pedido</span>
+                        <strong>@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <span class="text-muted">Estado</span>
+                        <span class="badge bg-warning text-dark">INICIO</span>
+                    </div>
+
+                    @* Totales *@
+                    <div class="bg-light p-3 rounded mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal</span>
+                            <strong id="resumenSubtotal">S/ 0.00</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 d-none" id="filaDescuento">
+                            <span class="text-muted">Descuento Total</span>
+                            <strong class="text-danger" id="resumenDescuento">- S/ 0.00</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">IGV (18%)</span>
+                            <strong id="resumenIGV">S/ 0.00</strong>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fs-5">TOTAL</span>
+                            <strong class="fs-4 text-primary" id="resumenTotal">S/ 0.00</strong>
+                        </div>
+                    </div>
+
+                    @* Info adicional *@
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted"><i class="fas fa-box me-2"></i>Productos</span>
+                        <strong id="cantidadProductos">0 items</strong>
+                    </div>
+
+                    @* Alerta de stock *@
+                    <div class="alert alert-warning small mt-3 d-none" id="alertaStock">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="mensajeStock">Algunos productos tienen stock limitado</span>
+                    </div>
+
+                    @* Botones de acción *@
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg" id="btnGuardar" disabled>
+                            <i class="fas fa-save me-2"></i>Crear Pedido
+                        </button>
+                         
+                        <button type="reset" class="btn btn-outline-danger" onclick="limpiarFormulario()">
+                            <i class="fas fa-trash me-2"></i>Limpiar Todo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@* Modal de búsqueda de Clientes *@
+<div class="modal fade" id="modalClientes" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-users me-2"></i>Seleccionar Cliente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @* Filtros *@
+                <div class="row g-2 mb-3">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="busquedaModal" 
+                                   placeholder="Buscar por nombre, DNI, RUC..." 
+                                   onkeyup="cargarClientesModal()">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="filtroTipoModal" onchange="cargarClientesModal()">
+                            <option value="">Todos los documentos</option>
+                            <option value="DNI">DNI</option>
+                            <option value="RUC">RUC</option>
+                            <option value="CE">Carnet Extranjería</option>
+                        </select>
+                    </div>
+                </div>
+
+                @* Indicador de carga *@
+                <div id="cargaModal" class="text-center py-3 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-2">Cargando clientes...</p>
+                </div>
+
+                @* Tabla de clientes *@
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover table-sm" id="tablaClientesModal">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Documento</th>
+                                <th>Contacto</th>
+                                <th>Tipo</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyClientesModal">
+                            @* Se carga dinámicamente desde la BD *@
+                        </tbody>
+                    </table>
+                    <div id="sinResultadosModal" class="text-center py-4 text-muted d-none">
+                        <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
+                        <p>No se encontraron clientes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a asp-controller="Clientes" asp-action="Create" target="_blank" class="btn btn-outline-primary">
+                    <i class="fas fa-user-plus me-2"></i>Nuevo Cliente
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal de búsqueda de Productos *@
+<div class="modal fade" id="modalProductos" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-boxes me-2"></i>Buscar y Agregar Productos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @* Buscador *@
+                <div class="mb-3">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-light"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" class="form-control" id="buscadorProductoModal" 
+                               placeholder="Buscar por código, nombre o descripción..." 
+                               onkeyup="buscarProductosModal()" autocomplete="off">
+                    </div>
+                    <div class="form-text">Escriba al menos 2 caracteres para buscar en la base de datos</div>
+                </div>
+
+                @* Indicador de carga *@
+                <div id="cargaProductosModal" class="text-center py-4 d-none">
+                    <div class="spinner-border text-success" role="status"></div>
+                    <p class="text-muted mt-2">Buscando productos...</p>
+                </div>
+
+                @* Resultados *@
+                <div id="resultadosProductosModal" style="max-height: 400px; overflow-y: auto;">
+                    <div class="row g-3" id="gridProductosModal">
+                        @* Productos se cargan aquí dinámicamente desde BD *@
+                    </div>
+                    <div id="sinProductosModal" class="text-center py-5 text-muted d-none">
+                        <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+                        <p>No se encontraron productos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <div>
+                    <span class="text-muted" id="contadorProductosModal">0 productos encontrados</span>
+                </div>
+                <div>
+                    <a asp-controller="Productos" asp-action="Create" target="_blank" class="btn btn-outline-success">
+                        <i class="fas fa-plus me-2"></i>Nuevo Producto
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let clienteSeleccionado = null;
+        let productosEnPedido = [];
+        let timeoutBusqueda = null;
+        let timeoutProductos = null;
+
+        // ========== INICIALIZACIÓN ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // Buscador cliente con debounce
+            const buscador = document.getElementById('buscadorCliente');
+            buscador.addEventListener('input', function() {
+                clearTimeout(timeoutBusqueda);
+                const valor = this.value.trim();
+                
+                if (valor.length >= 2) {
+                    document.getElementById('indicadorCarga').classList.remove('d-none');
+                    timeoutBusqueda = setTimeout(() => buscarClientesAjax(valor), 300);
+                } else {
+                    ocultarResultados();
+                    document.getElementById('indicadorCarga').classList.add('d-none');
+                }
+            });
+
+            // Cerrar resultados al click fuera
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#buscadorCliente') && !e.target.closest('#resultadosBusqueda')) {
+                    ocultarResultados();
+                }
+            });
+
+            // Contador observaciones
+            document.getElementById('observaciones').addEventListener('input', function() {
+                document.getElementById('contadorObs').textContent = `${this.value.length}/500`;
+            });
+        });
+
+        // ========== BÚSQUEDA AJAX DE CLIENTES ==========
+        async function buscarClientesAjax(termino) {
+            try {
+                const response = await fetch(`/Clientes/Buscar?texto=${encodeURIComponent(termino)}`);
+                
+                if (!response.ok) throw new Error('Error en la búsqueda');
+                
+                const clientes = await response.json();
+                mostrarResultados(clientes);
+                
+            } catch (error) {
+                console.error('Error buscando clientes:', error);
+                mostrarErrorBusqueda();
+            } finally {
+                document.getElementById('indicadorCarga').classList.add('d-none');
+            }
+        }
+
+        function mostrarResultados(clientes) {
+            const contenedor = document.getElementById('resultadosBusqueda');
+            
+            if (clientes.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="list-group-item text-muted text-center py-3">
+                        <i class="fas fa-search-minus me-2"></i>No se encontraron clientes
+                        <div class="mt-2">
+                            <a href="/Clientes/Create" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus me-1"></i>Crear nuevo cliente
+                            </a>
+                        </div>
+                    </div>`;
+            } else {
+                contenedor.innerHTML = clientes.map(c => `
+                    <button type="button" class="list-group-item list-group-item-action" 
+                            onclick="seleccionarCliente(${c.id})">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${escapeHtml(c.nombreCompleto)}</strong>
+                                <div class="small text-muted">
+                                    <span class="badge ${getBadgeClass(c.tipoDocumento)} me-1">${c.tipoDocumento}</span>
+                                    ${c.numeroDocumento}
+                                </div>
+                            </div>
+                            <div class="text-end small text-muted">
+                                <div><i class="fas fa-phone me-1"></i>${c.telefono || '-'}</div>
+                                ${c.esFrecuente ? '<span class="badge bg-warning text-dark mt-1"><i class="fas fa-star me-1"></i>Frec.</span>' : ''}
+                            </div>
+                        </div>
+                    </button>
+                `).join('');
+            }
+            
+            contenedor.style.display = 'block';
+        }
+
+        function mostrarErrorBusqueda() {
+            const contenedor = document.getElementById('resultadosBusqueda');
+            contenedor.innerHTML = `
+                <div class="list-group-item text-danger text-center py-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>Error al buscar
+                    <div class="small mt-1">Intente nuevamente</div>
+                </div>`;
+            contenedor.style.display = 'block';
+        }
+
+        function ocultarResultados() {
+            document.getElementById('resultadosBusqueda').style.display = 'none';
+        }
+
+        function getBadgeClass(tipo) {
+            switch(tipo) {
+                case 'DNI': return 'bg-primary';
+                case 'RUC': return 'bg-warning text-dark';
+                case 'CE': return 'bg-info';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ========== SELECCIÓN DE CLIENTE ==========
+        async function seleccionarCliente(id) {
+            try {
+                const response = await fetch(`/Clientes/ObtenerCliente?id=${id}`);
+                
+                if (!response.ok) throw new Error('Error obteniendo cliente');
+                
+                const cliente = await response.json();
+                
+                clienteSeleccionado = cliente;
+                
+                // Llenar hidden input
+                document.getElementById('clienteId').value = cliente.id;
+                
+                // Mostrar info
+                document.getElementById('sinCliente').classList.add('d-none');
+                document.getElementById('infoCliente').classList.remove('d-none');
+                ocultarResultados();
+                
+                document.getElementById('clienteNombre').textContent = cliente.nombreCompleto || 'Sin nombre';
+                document.getElementById('clienteTipoDocBadge').textContent = cliente.tipoDocumento || '-';
+                document.getElementById('clienteTipoDocBadge').className = `badge ${getBadgeClass(cliente.tipoDocumento)}`;
+                document.getElementById('clienteNumDoc').textContent = cliente.numeroDocumento || '-';
+                document.getElementById('clienteTelefono').textContent = cliente.telefono || '-';
+                document.getElementById('clienteEmail').textContent = cliente.email || '-';
+                document.getElementById('clienteDireccion').textContent = cliente.direccion || '-';
+                
+                // Mostrar descuento si es frecuente
+                if (cliente.esFrecuente && cliente.descuentoPreferencial > 0) {
+                    document.getElementById('clienteDescuento').classList.remove('d-none');
+                    document.getElementById('porcentajeDescuento').textContent = cliente.descuentoPreferencial + '%';
+                } else {
+                    document.getElementById('clienteDescuento').classList.add('d-none');
+                }
+                
+                validarFormulario();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cargar información del cliente');
+            }
+        }
+
+        function cambiarCliente() {
+            clienteSeleccionado = null;
+            document.getElementById('clienteId').value = '';
+            document.getElementById('infoCliente').classList.add('d-none');
+            document.getElementById('sinCliente').classList.remove('d-none');
+            document.getElementById('buscadorCliente').value = '';
+            validarFormulario();
+        }
+
+        // ========== MODAL CLIENTES ==========
+        function mostrarModalClientes() {
+            const modal = new bootstrap.Modal(document.getElementById('modalClientes'));
+            modal.show();
+            cargarClientesModal();
+        }
+
+        async function cargarClientesModal() {
+            const tbody = document.getElementById('tbodyClientesModal');
+            const carga = document.getElementById('cargaModal');
+            const sinResultados = document.getElementById('sinResultadosModal');
+            
+            tbody.innerHTML = '';
+            carga.classList.remove('d-none');
+            sinResultados.classList.add('d-none');
+            
+            try {
+                const busqueda = document.getElementById('busquedaModal').value;
+                const tipo = document.getElementById('filtroTipoModal').value;
+                
+                let url = '/Clientes/Buscar?texto=' + encodeURIComponent(busqueda || 'a');
+                if (tipo) url += '&tipoDocumento=' + tipo;
+                
+                const response = await fetch(url);
+                const clientes = await response.json();
+                
+                carga.classList.add('d-none');
+                
+                if (clientes.length === 0) {
+                    sinResultados.classList.remove('d-none');
+                } else {
+                    tbody.innerHTML = clientes.map(c => `
+                        <tr>
+                            <td>
+                                <strong>${escapeHtml(c.nombreCompleto)}</strong>
+                                ${c.esFrecuente ? '<span class="badge bg-warning text-dark ms-1"><i class="fas fa-star"></i></span>' : ''}
+                            </td>
+                            <td><span class="badge ${getBadgeClass(c.tipoDocumento)}">${c.tipoDocumento}</span> ${c.numeroDocumento}</td>
+                            <td>${c.telefono || '-'}<br><small class="text-muted">${c.email || ''}</small></td>
+                            <td>${c.esFrecuente ? '<span class="text-warning"><i class="fas fa-star"></i> Frec.</span>' : 'Regular'}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="seleccionarClienteDesdeModal(${c.id})">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                carga.classList.add('d-none');
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error al cargar clientes</td></tr>';
+            }
+        }
+
+        function seleccionarClienteDesdeModal(id) {
+            seleccionarCliente(id);
+            bootstrap.Modal.getInstance(document.getElementById('modalClientes')).hide();
+        }
+
+        // ========== MODAL PRODUCTOS ==========
+        function mostrarModalProductos() {
+            const modal = new bootstrap.Modal(document.getElementById('modalProductos'));
+            modal.show();
+            document.getElementById('buscadorProductoModal').value = '';
+            document.getElementById('gridProductosModal').innerHTML = '';
+            document.getElementById('sinProductosModal').classList.add('d-none');
+        }
+
+        async function buscarProductosModal() {
+            clearTimeout(timeoutProductos);
+            const termino = document.getElementById('buscadorProductoModal').value.trim();
+            
+            if (termino.length < 2) return;
+            
+            timeoutProductos = setTimeout(async () => {
+                const carga = document.getElementById('cargaProductosModal');
+                const grid = document.getElementById('gridProductosModal');
+                const sinResultados = document.getElementById('sinProductosModal');
+                
+                carga.classList.remove('d-none');
+                grid.innerHTML = '';
+                
+                try {
+                    const response = await fetch(`/Ventas/BuscarProductos?texto=${encodeURIComponent(termino)}`);
+                    const productos = await response.json();
+                    
+                    carga.classList.add('d-none');
+                    document.getElementById('contadorProductosModal').textContent = `${productos.length} productos encontrados`;
+                    
+                    if (productos.length === 0) {
+                        sinResultados.classList.remove('d-none');
+                    } else {
+                        sinResultados.classList.add('d-none');
+                        grid.innerHTML = productos.map(p => `
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 producto-card ${p.stockBajo ? 'border-warning' : ''}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <span class="badge bg-secondary">${p.codigo}</span>
+                                            ${p.stockBajo ? '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle"></i> Stock bajo</span>' : ''}
+                                        </div>
+                                        <h6 class="card-title mb-1">${escapeHtml(p.nombre)}</h6>
+                                        <p class="card-text small text-muted mb-2">${escapeHtml(p.descripcion || '')}</p>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-success fw-bold">S/ ${p.precioVenta.toFixed(2)}</span>
+                                            <span class="badge bg-light text-dark">${p.unidadMedida}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center small text-muted mb-3">
+                                            <span>Stock: ${p.stockActual} ${p.abreviaturaUnidad}</span>
+                                            <span>${p.categoria || 'Sin categoría'}</span>
+                                        </div>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="cantidad-${p.id}" 
+                                                   placeholder="Cant." min="1" step="1" value="1">
+                                            <button class="btn btn-success" type="button" onclick="agregarProducto(${p.id}, '${escapeHtml(p.codigo)}', '${escapeHtml(p.nombre)}', ${p.precioVenta}, '${p.unidadMedida}', '${p.abreviaturaUnidad}', ${p.unidadMedidaId}, ${p.stockActual})">
+                                                <i class="fas fa-plus"></i> Agregar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } catch (error) {
+                    carga.classList.add('d-none');
+                    grid.innerHTML = '<div class="col-12 text-center text-danger">Error al buscar productos</div>';
+                }
+            }, 300);
+        }
+
+        // ========== GESTIÓN DE PRODUCTOS EN PEDIDO ==========
+        function agregarProducto(id, codigo, nombre, precio, unidadMedida, abreviatura, unidadMedidaId, stockActual) {
+            const cantidadInput = document.getElementById(`cantidad-${id}`);
+            const cantidad = parseFloat(cantidadInput.value);
+            
+            if (!cantidad || cantidad <= 0) {
+                alert('Ingrese una cantidad válida');
+                return;
+            }
+            
+            // Verificar si ya existe
+            const existeIndex = productosEnPedido.findIndex(p => p.productoId === id);
+            if (existeIndex >= 0) {
+                if (confirm('Este producto ya está en el pedido. ¿Desea sumar la cantidad?')) {
+                    productosEnPedido[existeIndex].cantidad += cantidad;
+                    recalcularSubtotal(existeIndex);
+                    bootstrap.Modal.getInstance(document.getElementById('modalProductos')).hide();
+                }
+                return;
+            }
+            
+            const producto = {
+                productoId: id,
+                codigo: codigo,
+                nombre: nombre,
+                cantidad: cantidad,
+                precioUnitario: precio,
+                unidadMedida: unidadMedida,
+                abreviaturaUnidad: abreviatura,
+                unidadMedidaId: unidadMedidaId,
+                descuento: 0,
+                stockActual: stockActual
+            };
+            
+            producto.subtotal = (producto.cantidad * producto.precioUnitario) - producto.descuento;
+            
+            productosEnPedido.push(producto);
+            renderizarTablaProductos();
+            bootstrap.Modal.getInstance(document.getElementById('modalProductos')).hide();
+        }
+
+        function renderizarTablaProductos() {
+            const tbody = document.getElementById('tbodyProductos');
+            const sinProductos = document.getElementById('sinProductos');
+            const tabla = document.getElementById('tablaProductos');
+            
+            if (productosEnPedido.length === 0) {
+                sinProductos.classList.remove('d-none');
+                tabla.classList.add('d-none');
+            } else {
+                sinProductos.classList.add('d-none');
+                tabla.classList.remove('d-none');
+                
+                tbody.innerHTML = productosEnPedido.map((p, index) => `
+                    <tr class="producto-row">
+                        <td class="ps-4">
+                            <div class="fw-bold">${p.codigo}</div>
+                            <div class="small text-muted">${p.nombre}</div>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm" 
+                                   value="${p.cantidad.toFixed(2)}"  step="1"
+                                   onchange="actualizarCantidad(${index}, this.value)" style="width: 90px;">
+                        </td>
+                        <td><span class="badge bg-light text-dark">${p.unidadMedida}</span></td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">S/</span>
+                                <input type="number" class="form-control" 
+                                       value="${p.precioUnitario.toFixed(2)}" 
+                                       onchange="actualizarPrecio(${index}, this.value)" style="width: 80px;">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">S/</span>
+                                <input type="number" class="form-control" 
+                                       value="${p.descuento.toFixed(2)}" min="0" step="1"
+                                       onchange="actualizarDescuento(${index}, this.value)" style="width: 70px;">
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold">S/ ${p.subtotal.toFixed(2)}</td>
+                        <td>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarProducto(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            calcularTotales();
+            generarInputsOcultos();
+            validarFormulario();
+            verificarStock();
+        }
+
+        function actualizarCantidad(index, valor) {
+            const cantidad = parseFloat(valor);
+            if (cantidad <= 0) {
+                alert('La cantidad debe ser mayor a 0');
+                renderizarTablaProductos();
+                return;
+            }
+            productosEnPedido[index].cantidad = cantidad;
+            recalcularSubtotal(index);
+        }
+
+        function actualizarPrecio(index, valor) {
+            const precio = parseFloat(valor);
+            productosEnPedido[index].precioUnitario = precio;
+            recalcularSubtotal(index);
+        }
+
+        function actualizarDescuento(index, valor) {
+            const descuento = parseFloat(valor) || 0;
+            productosEnPedido[index].descuento = descuento;
+            recalcularSubtotal(index);
+        }
+
+        function recalcularSubtotal(index) {
+            const p = productosEnPedido[index];
+            p.subtotal = (p.cantidad * p.precioUnitario) - p.descuento;
+            renderizarTablaProductos();
+        }
+
+        function eliminarProducto(index) {
+            if (confirm('¿Eliminar este producto del pedido?')) {
+                productosEnPedido.splice(index, 1);
+                renderizarTablaProductos();
+            }
+        }
+
+        // ========== CÁLCULOS Y TOTALES ==========
+        function calcularTotales() {
+            let subtotal = 0;
+            let descuentoTotal = 0;
+            
+            productosEnPedido.forEach(p => {
+                subtotal += (p.cantidad * p.precioUnitario);
+                descuentoTotal += p.descuento;
+            });
+            
+            const subtotalNeto = subtotal - descuentoTotal;
+            const igv = subtotalNeto * 0.18;
+            const total = subtotalNeto + igv;
+            
+            document.getElementById('resumenSubtotal').textContent = 'S/ ' + subtotalNeto.toFixed(2);
+            document.getElementById('resumenIGV').textContent = 'S/ ' + igv.toFixed(2);
+            document.getElementById('resumenTotal').textContent = 'S/ ' + total.toFixed(2);
+            document.getElementById('cantidadProductos').textContent = productosEnPedido.length + ' items';
+            
+            if (descuentoTotal > 0) {
+                document.getElementById('filaDescuento').classList.remove('d-none');
+                document.getElementById('resumenDescuento').textContent = '- S/ ' + descuentoTotal.toFixed(2);
+            } else {
+                document.getElementById('filaDescuento').classList.add('d-none');
+            }
+        }
+
+        function verificarStock() {
+            const alerta = document.getElementById('alertaStock');
+            const mensaje = document.getElementById('mensajeStock');
+            
+            const conStockBajo = productosEnPedido.filter(p => p.cantidad > p.stockActual);
+            
+            if (conStockBajo.length > 0) {
+                alerta.classList.remove('d-none');
+                mensaje.textContent = `${conStockBajo.length} producto(s) superan el stock disponible`;
+            } else {
+                alerta.classList.add('d-none');
+            }
+        }
+
+        // ========== FORMULARIO Y ENVÍO ==========
+        function generarInputsOcultos() {
+            // Eliminar anteriores
+            document.querySelectorAll('input[name^="Detalles["]').forEach(el => el.remove());
+            
+            const form = document.getElementById('formPedido');
+            
+            productosEnPedido.forEach((p, index) => {
+                const prefix = `Detalles[${index}]`;
+                
+                const inputs = [
+                    { name: `${prefix}.ProductoId`, value: p.productoId },
+                    { name: `${prefix}.Cantidad`, value: p.cantidad },
+                    { name: `${prefix}.PrecioUnitario`, value: p.precioUnitario },
+                    { name: `${prefix}.Descuento`, value: p.descuento }
+                ];
+                
+                inputs.forEach(inp => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = inp.name;
+                    input.value = inp.value;
+                    form.appendChild(input);
+                });
+            });
+        }
+
+        function validarFormulario() {
+            const tieneCliente = document.getElementById('clienteId').value !== '';
+            const tieneProductos = productosEnPedido.length > 0;
+            document.getElementById('btnGuardar').disabled = !(tieneCliente && tieneProductos);
+        }
+
+        function guardarBorrador() {
+            alert('Función de borrador no implementada. El pedido se guardará normalmente.');
+        }
+
+        function limpiarFormulario() {
+            if (confirm('¿Está seguro de limpiar todo el formulario?')) {
+                location.reload();
+            }
+        }
+         
+
+        // Validación antes de enviar
+        document.getElementById('formPedido').addEventListener('submit', function(e) {
+
+            const fechaEntrega = document.getElementById("fechaEntrega");
+            if (fechaEntrega.value.trim() === "") {
+                e.preventDefault(); // evita que se envíe el formulario
+               // alert("Debes ingresar observaciones antes de enviar el formulario.");
+               fechaEntrega.classList.add("is-invalid");
+            }
+            else {
+                fechaEntrega.classList.remove("is-invalid");
+            }
+            const obs = document.getElementById("observaciones");
+            if (obs.value.trim() === "") {
+                e.preventDefault(); // evita que se envíe el formulario
+               // alert("Debes ingresar observaciones antes de enviar el formulario.");
+               obs.classList.add("is-invalid");
+            }
+            else {
+                obs.classList.remove("is-invalid");
+            }
+            if (productosEnPedido.length === 0) {
+                e.preventDefault();
+                alert('Debe agregar al menos un producto al pedido');
+                return false;
+            }
+            
+            if (!document.getElementById('clienteId').value) {
+                e.preventDefault();
+                alert('Debe seleccionar un cliente');
+                document.getElementById('buscadorCliente').focus();
+                return false;
+            }
+            
+            // Verificar stock antes de enviar
+            const sinStock = productosEnPedido.filter(p => p.cantidad > p.stockActual);
+            if (sinStock.length > 0) {
+                if (!confirm('Algunos productos superan el stock disponible. ¿Desea continuar de todos modos?')) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+    </script>
+}

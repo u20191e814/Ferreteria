@@ -1,0 +1,1480 @@
+﻿@using Ferreteria.DTOs
+@model Ferreteria.DTOs.ProductoCreateDto
+@{
+    ViewData["Title"] = "Nuevo Producto";
+    var unidades = ViewBag.UnidadesMedida as IEnumerable<UnidadMedidaDto> ?? new List<UnidadMedidaDto>();
+    var categorias = ViewBag.Categorias as IEnumerable<CategoriaDto> ?? new List<CategoriaDto>();
+}
+
+ 
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+         
+        <h2 class="mb-0">Nuevo Producto</h2>
+        <p class="text-muted mb-0">Registra un nuevo producto en el inventario</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Volver al listado
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form asp-action="Create" method="post" id="formProducto" class="needs-validation" novalidate>
+            <div class="card">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-box me-2 text-primary"></i>Información del Producto</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row g-3">
+                        @* Código y Nombre *@
+                        <div class="col-md-6">
+                            <label asp-for="Codigo" class="form-label fw-bold">
+                                Código <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="fas fa-barcode text-muted"></i>
+                                </span>
+                                <input asp-for="Codigo" class="form-control" placeholder="PROD-001" required
+                                       maxlength="50" id="codigo" onblur="validarCodigo()">
+                                <button type="button" class="btn btn-outline-secondary" onclick="generarCodigo()" title="Generar código automático">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Codigo" class="text-danger small"></span>
+                            <div id="codigoFeedback" class="form-text"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Nombre" class="form-label fw-bold">
+                                Nombre del Producto <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Nombre" class="form-control" placeholder="Ej: Cemento Portland Tipo I"
+                                   required maxlength="200" id="nombre">
+                            <span asp-validation-for="Nombre" class="text-danger small"></span>
+                        </div>
+
+                        @* NUEVO: CATEGORÍA CON BÚSQUEDA E INGRESO DESDE BD *@
+                        <div class="col-md-6">
+                            <label asp-for="CategoriaId" class="form-label fw-bold">Categoría</label>
+                            <input type="hidden" asp-for="CategoriaId" id="categoriaId" />
+
+                            <div class="position-relative">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-tags text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="buscadorCategoria"
+                                           placeholder="Buscar o seleccionar categoría..." autocomplete="off">
+                                    <button type="button" class="btn btn-outline-primary" onclick="mostrarModalGestionCategorias()"
+                                            title="Gestionar categorías (Editar, Eliminar, Nueva)">
+                                        <i class="fas fa-th-large"></i>
+                                    </button>
+                                </div>
+
+                                @* Indicador de carga *@
+                                <div id="indicadorCargaCategoria" class="position-absolute end-0 top-0 mt-2 me-5 d-none">
+                                    <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                </div>
+                            </div>
+
+                            <div id="resultadosCategoria" class="list-group shadow-lg position-absolute w-100"
+                                 style="z-index: 1000; max-height: 200px; overflow-y: auto; display: none;">
+                            </div>
+
+                            @* Info de categoría seleccionada *@
+                            <div id="infoCategoria" class="d-none mt-2">
+                                <div class="alert alert-primary p-2 mb-0 border-0 categoria-seleccionada">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-tag me-2 text-primary"></i>
+                                            <span id="nombreCategoriaSeleccionada" class="fw-bold">-</span>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarCategoria()" title="Cambiar categoría">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="sinCategoria" class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>Seleccione una categoría o déjelo vacío
+                            </div>
+                        </div>
+                        @* Unidad de Medida desde BD *@
+                        <div class="col-md-6">
+                            <label asp-for="UnidadMedidaId" class="form-label fw-bold">
+                                Unidad de Medida <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="fas fa-ruler text-muted"></i>
+                                </span>
+                                <select asp-for="UnidadMedidaId" class="form-select" required id="unidadMedida">
+                                    <option value="">Seleccionar...</option>
+                                    @foreach (var um in unidades)
+                                    {
+                                        <option value="@um.Id" data-abrev="@um.Abreviatura">@um.NombreCompleto</option>
+                                    }
+                                </select>
+                            </div>
+                            <span asp-validation-for="UnidadMedidaId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Descripcion" class="form-label fw-bold">Descripción</label>
+                            <textarea asp-for="Descripcion" class="form-control" rows="3"
+                                      placeholder="Descripción detallada del producto, características, usos..."
+                                      maxlength="500" id="descripcion"></textarea>
+                            <div class="form-text d-flex justify-content-between">
+                                <span>Información adicional para el catálogo</span>
+                                <span id="contadorDesc">0/500</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Card Precios y Stock *@
+            <div class="card mt-4">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h5 class="mb-0"><i class="fas fa-dollar-sign me-2 text-success"></i>Precios y Stock</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="PrecioCompra" class="form-label fw-bold">
+                                Precio de Compra <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">S/</span>
+                                <input asp-for="PrecioCompra" type="number" class="form-control"
+                                       placeholder="0.00" step="1" min="0" required id="precioCompra"
+                                       onchange="calcularMargen()">
+                            </div>
+                            <span asp-validation-for="PrecioCompra" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="PrecioVenta" class="form-label fw-bold">
+                                Precio de Venta <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">S/</span>
+                                <input asp-for="PrecioVenta" type="number" class="form-control"
+                                       placeholder="0.00" step="1" min="0" required id="precioVenta"
+                                       onchange="calcularMargen()">
+                            </div>
+                            <span asp-validation-for="PrecioVenta" class="text-danger small"></span>
+                            <div id="margenGanancia" class="form-text"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Margen de Ganancia</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-percentage text-muted"></i></span>
+                                <input type="text" class="form-control" id="margenPorcentaje" readonly placeholder="0%">
+                            </div>
+                            <div id="margenAlert" class="form-text"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="StockInicial" class="form-label fw-bold">
+                                Stock Inicial <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="StockInicial" type="number" class="form-control"
+                                       placeholder="0" step="1" min="0" required id="stockInicial">
+                                <span class="input-group-text bg-light" id="abreviaturaStock">und</span>
+                            </div>
+                            <span asp-validation-for="StockInicial" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="StockMinimo" class="form-label fw-bold">
+                                Stock Mínimo <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="StockMinimo" type="number" class="form-control"
+                                       placeholder="0" step="1" min="0" required id="stockMinimo">
+                                <span class="input-group-text bg-light" id="abreviaturaMinimo">und</span>
+                            </div>
+                            <span asp-validation-for="StockMinimo" class="text-danger small"></span>
+                            <div class="form-text">Cantidad mínima antes de alerta de stock bajo</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="UbicacionAlmacen" class="form-label fw-bold">Ubicación en Almacén</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="fas fa-map-marker-alt text-muted"></i>
+                                </span>
+                                <input asp-for="UbicacionAlmacen" class="form-control"
+                                       placeholder="Ej: Estante A-12" maxlength="100">
+                            </div>
+                            <span asp-validation-for="UbicacionAlmacen" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Card Proveedor *@
+            <div class="card mt-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-truck me-2 text-info"></i>Información de Proveedor</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="mostrarModalProveedores()">
+                        <i class="fas fa-list me-1"></i>Ver Todos
+                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <input type="hidden" asp-for="idProveedor" id="idProveedor" />
+                    
+                    <div class="position-relative">
+                        <label class="form-label fw-bold">Buscar Proveedor</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light">
+                                <i class="fas fa-building text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control" id="buscadorProveedor"
+                                   placeholder="Escriba nombre del proveedor para buscar..."
+                                   autocomplete="off">
+                            <button type="button" class="btn btn-outline-success" onclick="mostrarModalNuevoProveedor()" title="Nuevo proveedor rápido">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Mínimo 2 caracteres para buscar en la base de datos</div>
+
+                        <div id="indicadorCargaProveedor" class="position-absolute end-0 top-50 mt-4 me-5 d-none">
+                            <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                        </div>
+                    </div>
+
+                    <div id="resultadosProveedor" class="list-group shadow-lg position-absolute w-100"
+                         style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none; margin-top: -10px;">
+                    </div>
+
+                    <div id="infoProveedor" class="d-none mt-3">
+                        <div class="alert alert-info p-3 mb-0 border-0 proveedor-seleccionado">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1 fw-bold" id="nombreProveedorSeleccionado">-</h6>
+                                    <span class="badge bg-primary">Proveedor seleccionado</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarProveedor()" title="Cambiar proveedor">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sinProveedor" class="text-center py-3 text-muted border rounded bg-light mt-3">
+                        <i class="fas fa-building fa-2x mb-2 opacity-25"></i>
+                        <p class="mb-0">Ningún proveedor seleccionado. Busque o cree uno nuevo.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <button type="reset" class="btn btn-outline-secondary btn-lg" onclick="limpiarFormulario()">
+                    <i class="fas fa-undo me-2"></i>Limpiar
+                </button>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btnGuardar">
+                        <i class="fas fa-save me-2"></i>Guardar Producto
+                    </button>
+                    <button type="submit" class="btn btn-success btn-lg" name="guardarYNuevo" value="true" id="btnGuardarYNuevo">
+                        <i class="fas fa-plus me-2"></i>Guardar y Nuevo
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    @* Columna Preview *@
+    <div class="col-lg-4">
+        <div class="card sticky-top" style="top: 20px; z-index: 100;">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="mb-0"><i class="fas fa-eye me-2 text-warning"></i>Vista Previa</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="text-center mb-3">
+                    <div class="bg-light rounded p-4 mb-3" style="height: 150px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-box-open fa-3x text-muted opacity-25" id="previewIcon"></i>
+                    </div>
+                </div>
+
+                <h5 class="mb-1" id="previewNombre">Nombre del Producto</h5>
+                <p class="text-muted small mb-2" id="previewCodigo">PROD-000</p>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-secondary" id="previewCategoria">Sin categoría</span>
+                    <span class="badge bg-primary" id="previewUnidad">und</span>
+                </div>
+
+                <hr>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Precio Venta</small>
+                        <strong class="text-primary fs-5" id="previewPrecio">S/ 0.00</strong>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted d-block">Stock</small>
+                        <strong class="text-success" id="previewStock">0 und</strong>
+                    </div>
+                </div>
+
+                <div class="alert alert-info small mb-0" id="previewMargen">
+                    <i class="fas fa-calculator me-2"></i>Margen: 0%
+                </div>
+
+                @* Info de proveedor en preview *@
+                <div class="mt-3 pt-3 border-top d-none" id="previewProveedor">
+                    <small class="text-muted d-block mb-1">Proveedor</small>
+                    <span class="badge bg-info text-dark" id="previewNombreProveedor">
+                        <i class="fas fa-truck me-1"></i><span id="textoProveedorPreview">-</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h6 class="mb-0"><i class="fas fa-lightbulb me-2 text-warning"></i>Consejos</h6>
+            </div>
+            <div class="card-body p-4">
+                <ul class="list-unstyled mb-0 small">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Use códigos únicos y descriptivos
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        El margen recomendado es 30-50%
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Stock mínimo = 10-20% del stock mensual promedio
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        Incluya la ubicación exacta para facilitar búsquedas
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        La descripción ayuda en las búsquedas del catálogo
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ==================== MODALES ==================== *@
+@* MODAL DE GESTIÓN COMPLETA DE CATEGORÍAS *@
+<div class="modal fade" id="modalGestionCategorias" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-tags me-2"></i>Gestionar Categorías
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @* Toolbar *@
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="input-group w-50">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="busquedaGestionCategoria"
+                               placeholder="Buscar categoría..." onkeyup="filtrarCategoriasGestion()">
+                    </div>
+                    <button type="button" class="btn btn-success" onclick="mostrarModalNuevaCategoriaDesdeGestion()">
+                        <i class="fas fa-plus me-2"></i>Nueva Categoría
+                    </button>
+                </div>
+
+                @* Loading *@
+                <div id="cargaGestionCategorias" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Cargando categorías...</p>
+                </div>
+
+                @* Grid de Categorías *@
+                <div id="gridGestionCategorias" class="d-none">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40%">Nombre</th>
+                                    <th style="width: 35%">Descripción</th>
+                                    <th style="width: 10%" class="text-center">Productos</th>
+                                    <th style="width: 15%" class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyGestionCategorias">
+                                @* Se carga dinámicamente *@
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                @* Sin resultados *@
+                <div id="sinResultadosGestionCategorias" class="text-center py-4 text-muted d-none">
+                    <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
+                    <p>No se encontraron categorías</p>
+                </div>
+
+                @* Estado vacío *@
+                <div id="estadoVacioGestionCategorias" class="text-center py-4 text-muted d-none">
+                    <i class="fas fa-folder-open fa-2x mb-2 opacity-25"></i>
+                    <p>No hay categorías registradas</p>
+                    <button class="btn btn-sm btn-outline-primary" onclick="mostrarModalNuevaCategoriaDesdeGestion()">
+                        Crear la primera categoría
+                    </button>
+                </div>
+            </div>
+             
+        </div>
+    </div>
+</div>
+
+@* MODAL EDITAR CATEGORÍA *@
+<div class="modal fade" id="modalEditarCategoria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Editar Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editarCategoriaId" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="editarCategoriaNombre" maxlength="100">
+                    <div class="form-text">Mínimo 2 caracteres</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Descripción</label>
+                    <textarea class="form-control" id="editarCategoriaDescripcion" rows="2" maxlength="255"></textarea>
+                </div>
+
+                <div id="errorEditarCategoria" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                
+                <button type="button" class="btn btn-warning" onclick="guardarEdicionCategoria()">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* MODAL CONFIRMAR ELIMINACIÓN *@
+<div class="modal fade" id="modalEliminarCategoria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="eliminarCategoriaId" />
+
+                <div class="text-center mb-3">
+                    <i class="fas fa-trash-alt fa-3x text-danger opacity-50"></i>
+                </div>
+
+                <p class="text-center">
+                    ¿Está seguro de que desea eliminar la categoría <strong id="eliminarCategoriaNombre"></strong>?
+                </p>
+
+                <div id="alertaProductosAsociados" class="alert alert-warning d-none">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Esta categoría tiene <strong id="cantidadProductosEliminar">0</strong> producto(s) asociado(s).
+                    No se puede eliminar hasta que reasigne o elimine esos productos.
+                </div>
+
+                <div id="errorEliminarCategoria" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                 
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminar" onclick="confirmarEliminarCategoria()">
+                    <i class="fas fa-trash me-2"></i>Sí, Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* MODAL NUEVA CATEGORÍA (Actualizado para integración) *@
+<div class="modal fade" id="modalNuevaCategoria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Nueva Categoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="nuevaCategoriaNombre"
+                           placeholder="Ej: Materiales de Construcción" maxlength="100">
+                    <div class="form-text">Mínimo 2 caracteres</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descripción (opcional)</label>
+                    <textarea class="form-control" id="nuevaCategoriaDescripcion" rows="2"
+                              placeholder="Breve descripción..." maxlength="255"></textarea>
+                </div>
+                <div id="errorNuevaCategoria" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                
+                <button type="button" class="btn btn-success" onclick="crearCategoriaRapida()">
+                    <i class="fas fa-save me-2"></i>Crear y Seleccionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+ 
+@* Modal de Proveedores (existente) *@
+<div class="modal fade" id="modalProveedores" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-truck me-2"></i>Seleccionar Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="busquedaModalProveedor"
+                               placeholder="Buscar proveedor..."
+                               onkeyup="cargarProveedoresModal()">
+                    </div>
+                </div>
+
+                <div id="cargaModalProveedor" class="text-center py-3 d-none">
+                    <div class="spinner-border text-info" role="status"></div>
+                </div>
+
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover table-sm" id="tablaProveedoresModal">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre del Proveedor</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyProveedoresModal">
+                            @* Se carga dinámicamente *@
+                        </tbody>
+                    </table>
+                    <div id="sinResultadosModalProveedor" class="text-center py-4 text-muted d-none">
+                        <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
+                        <p>No se encontraron proveedores</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                 
+                <button type="button" class="btn btn-outline-success" onclick="mostrarModalNuevoProveedorDesdeLista()">
+                    <i class="fas fa-plus me-2"></i>Nuevo Proveedor
+                </button>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal de Nuevo Proveedor Rápido (existente) *@
+<div class="modal fade" id="modalNuevoProveedor" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Nuevo Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre del Proveedor <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="nuevoProveedorNombre"
+                           placeholder="Ej: Constructora del Norte S.A.C." maxlength="250">
+                    <div class="form-text">Mínimo 2 caracteres</div>
+                </div>
+                <div id="errorNuevoProveedor" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                
+                <button type="button" class="btn btn-success" onclick="crearProveedorRapido()">
+                    <i class="fas fa-save me-2"></i>Crear y Seleccionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+         
+        let proveedorSeleccionado = null;
+        let categoriaSeleccionada = null;
+        let timeoutBusquedaProveedor = null;
+        let timeoutBusquedaCategoria = null;
+        let todasLasCategorias = @Html.Raw(Json.Serialize(categorias.Select(c => new { c.Id, c.Nombre, c.Descripcion })));
+
+       
+        document.addEventListener('DOMContentLoaded', function() {
+             
+            document.getElementById('unidadMedida').addEventListener('change', function() {
+                const selected = this.options[this.selectedIndex];
+                const abrev = selected.getAttribute('data-abrev') || 'und';
+
+                document.getElementById('abreviaturaStock').textContent = abrev;
+                document.getElementById('abreviaturaMinimo').textContent = abrev;
+                document.getElementById('previewUnidad').textContent = abrev;
+
+                actualizarPreview();
+            });
+
+            
+            document.getElementById('descripcion').addEventListener('input', function() {
+                document.getElementById('contadorDesc').textContent = `${this.value.length}/500`;
+            });
+              function mostrarModalNuevoProveedorDesdeLista() {
+            bootstrap.Modal.getInstance(document.getElementById('modalProveedores'))?.hide();
+            mostrarModalNuevoProveedor();
+        }
+            
+            const buscadorProv = document.getElementById('buscadorProveedor');
+            buscadorProv.addEventListener('input', function() {
+                clearTimeout(timeoutBusquedaProveedor);
+                const valor = this.value.trim();
+
+                if (valor.length >= 2) {
+                    document.getElementById('indicadorCargaProveedor').classList.remove('d-none');
+                    timeoutBusquedaProveedor = setTimeout(() => buscarProveedoresAjax(valor), 300);
+                } else {
+                    ocultarResultadosProveedor();
+                    document.getElementById('indicadorCargaProveedor').classList.add('d-none');
+                }
+            });
+
+            
+            const buscadorCat = document.getElementById('buscadorCategoria');
+            buscadorCat.addEventListener('input', function() {
+                clearTimeout(timeoutBusquedaCategoria);
+                const valor = this.value.trim();
+
+                if (valor.length >= 2) {
+                    document.getElementById('indicadorCargaCategoria').classList.remove('d-none');
+                    timeoutBusquedaCategoria = setTimeout(() => buscarCategoriasAjax(valor), 300);
+                } else {
+                    ocultarResultadosCategoria();
+                    document.getElementById('indicadorCargaCategoria').classList.add('d-none');
+                }
+            });
+
+            // Cerrar resultados al click fuera
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#buscadorProveedor') && !e.target.closest('#resultadosProveedor')) {
+                    ocultarResultadosProveedor();
+                }
+                if (!e.target.closest('#buscadorCategoria') && !e.target.closest('#resultadosCategoria')) {
+                    ocultarResultadosCategoria();
+                }
+            });
+
+             
+            ['nombre', 'codigo', 'precioVenta', 'stockInicial'].forEach(id => {
+                document.getElementById(id)?.addEventListener('input', actualizarPreview);
+            });
+        });
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        // ========== CATEGORÍAS - BÚSQUEDA AJAX ==========
+        async function buscarCategoriasAjax(termino) {
+            try {
+                const response = await fetch(`/Productos/BuscarCategorias?texto=${encodeURIComponent(termino)}`);
+
+                if (!response.ok) throw new Error('Error en la búsqueda');
+
+                const categorias = await response.json();
+                mostrarResultadosCategorias(categorias);
+
+            } catch (error) {
+                console.error('Error buscando categorías:', error);
+                // Fallback: buscar en las categorías locales ya cargadas
+                const filtradas = todasLasCategorias.filter(c =>
+                    c.nombre.toLowerCase().includes(termino.toLowerCase())
+                );
+                mostrarResultadosCategorias(filtradas);
+            } finally {
+                document.getElementById('indicadorCargaCategoria').classList.add('d-none');
+            }
+        }
+
+        function mostrarResultadosCategorias(categorias) {
+            const contenedor = document.getElementById('resultadosCategoria');
+
+            if (categorias.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="list-group-item text-muted text-center py-3">
+                        <i class="fas fa-search-minus me-2"></i>No se encontraron categorías
+                        <div class="mt-2">
+                            <button onclick="mostrarModalNuevaCategoria()" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-plus me-1"></i>Crear nueva categoría
+                            </button>
+                        </div>
+                    </div>`;
+            } else {
+                contenedor.innerHTML = categorias.map(c => `
+                    <button type="button" class="list-group-item list-group-item-action"
+                            onclick="seleccionarCategoria(${c.id}, '${escapeHtml(c.nombre)}')">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${escapeHtml(c.nombre)}</strong>
+                                ${c.descripcion ? `<div class="small text-muted text-truncate" style="max-width: 200px;">${escapeHtml(c.descripcion)}</div>` : ''}
+                            </div>
+                            <span class="badge bg-primary">Seleccionar</span>
+                        </div>
+                    </button>
+                `).join('');
+            }
+
+            contenedor.style.display = 'block';
+        }
+
+        function mostrarErrorBusquedaCategoria() {
+            const contenedor = document.getElementById('resultadosCategoria');
+            contenedor.innerHTML = `
+                <div class="list-group-item text-danger text-center py-3">
+                    <i class="fas fa-exclamation-circle me-2"></i>Error al buscar
+                </div>`;
+            contenedor.style.display = 'block';
+        }
+
+        function ocultarResultadosCategoria() {
+            document.getElementById('resultadosCategoria').style.display = 'none';
+        }
+
+        // ========== SELECCIÓN DE CATEGORÍA ==========
+        
+        
+        function seleccionarCategoria(id, nombre) {
+            categoriaSeleccionada = { id, nombre };
+
+            document.getElementById('categoriaId').value = id;
+            document.getElementById('nombreCategoriaSeleccionada').textContent = nombre;
+
+            document.getElementById('sinCategoria').classList.add('d-none');
+            document.getElementById('infoCategoria').classList.remove('d-none');
+            ocultarResultadosCategoria();
+            document.getElementById('buscadorCategoria').value = '';
+
+            
+            document.getElementById('previewCategoria').textContent = nombre;
+            document.getElementById('previewCategoria').className = 'badge bg-primary';
+        }
+
+        function limpiarCategoria() {
+            categoriaSeleccionada = null;
+            document.getElementById('categoriaId').value = '';
+            document.getElementById('infoCategoria').classList.add('d-none');
+            document.getElementById('sinCategoria').classList.remove('d-none');
+            document.getElementById('previewCategoria').textContent = 'Sin categoría';
+            document.getElementById('previewCategoria').className = 'badge bg-secondary';
+        }
+
+        
+        function mostrarModalCategorias() {
+            const modal = new bootstrap.Modal(document.getElementById('modalCategorias'));
+            modal.show();
+            renderizarCategoriasEnModal();
+        }
+
+        function renderizarCategoriasEnModal() {
+            const grid = document.getElementById('gridCategoriasModal');
+            grid.innerHTML = todasLasCategorias.map(c => `
+                <div class="col-md-4 categoria-item" data-nombre="${c.nombre.toLowerCase()}">
+                    <div class="card h-100 categoria-card ${categoriaSeleccionada?.id === c.id ? 'active' : ''}"
+                         onclick="seleccionarCategoriaDesdeModal(${c.id}, '${escapeHtml(c.nombre)}')">
+                        <div class="card-body text-center">
+                            <i class="fas fa-tag fa-2x ${categoriaSeleccionada?.id === c.id ? 'text-white' : 'text-primary'} mb-2"></i>
+                            <h6 class="card-title mb-1">${escapeHtml(c.nombre)}</h6>
+                            ${c.descripcion ? `<small class="${categoriaSeleccionada?.id === c.id ? 'text-white-50' : 'text-muted'} d-block text-truncate">${escapeHtml(c.descripcion)}</small>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filtrarCategoriasModal() {
+            const termino = document.getElementById('busquedaModalCategoria').value.toLowerCase();
+            const items = document.querySelectorAll('.categoria-item');
+            let visibles = 0;
+
+            items.forEach(item => {
+                const nombre = item.getAttribute('data-nombre');
+                if (nombre.includes(termino)) {
+                    item.classList.remove('d-none');
+                    visibles++;
+                } else {
+                    item.classList.add('d-none');
+                }
+            });
+
+            document.getElementById('sinResultadosModalCategoria').classList.toggle('d-none', visibles > 0);
+        }
+
+        function seleccionarCategoriaDesdeModal(id, nombre) {
+            seleccionarCategoria(id, nombre);
+            bootstrap.Modal.getInstance(document.getElementById('modalCategorias')).hide();
+        }
+
+        function mostrarModalNuevaCategoria() {
+            const modal = new bootstrap.Modal(document.getElementById('modalNuevaCategoria'));
+            modal.show();
+            document.getElementById('nuevaCategoriaNombre').value = '';
+            document.getElementById('nuevaCategoriaDescripcion').value = '';
+            document.getElementById('errorNuevaCategoria').classList.add('d-none');
+        }
+
+        function mostrarModalNuevaCategoriaDesdeModal() {
+            bootstrap.Modal.getInstance(document.getElementById('modalCategorias'))?.hide();
+            mostrarModalNuevaCategoria();
+        }
+
+        async function crearCategoriaRapida() {
+            const nombre = document.getElementById('nuevaCategoriaNombre').value.trim();
+            const descripcion = document.getElementById('nuevaCategoriaDescripcion').value.trim();
+            const errorDiv = document.getElementById('errorNuevaCategoria');
+
+            if (nombre.length < 2) {
+                errorDiv.textContent = 'El nombre debe tener al menos 2 caracteres';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Productos/CrearCategoriaRapida', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre: nombre, descripcion: descripcion })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error al crear categoría');
+                }
+
+                // Agregar a la lista local y seleccionar
+                const nuevaCat = { id: result.id, nombre: result.nombre, descripcion: descripcion };
+                todasLasCategorias.push(nuevaCat);
+                seleccionarCategoria(result.id, result.nombre);
+
+                bootstrap.Modal.getInstance(document.getElementById('modalNuevaCategoria')).hide();
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        }
+
+        ////nuevas
+        function mostrarModalGestionCategorias() {
+            const modal = new bootstrap.Modal(document.getElementById('modalGestionCategorias'));
+            modal.show();
+            cargarCategoriasParaGestion();
+        }
+
+        async function cargarCategoriasParaGestion() {
+            const carga = document.getElementById('cargaGestionCategorias');
+            const grid = document.getElementById('gridGestionCategorias');
+            const sinResultados = document.getElementById('sinResultadosGestionCategorias');
+            const estadoVacio = document.getElementById('estadoVacioGestionCategorias');
+            const tbody = document.getElementById('tbodyGestionCategorias');
+
+            // Reset UI
+            carga.classList.remove('d-none');
+            grid.classList.add('d-none');
+            sinResultados.classList.add('d-none');
+            estadoVacio.classList.add('d-none');
+
+            try {
+                const response = await fetch('/Productos/GetCategoriasParaGestion');
+                if (!response.ok) throw new Error('Error al cargar');
+
+                categoriasGestion = await response.json();
+                carga.classList.add('d-none');
+
+                if (categoriasGestion.length === 0) {
+                    estadoVacio.classList.remove('d-none');
+                    return;
+                }
+
+                renderizarTablaCategorias(categoriasGestion);
+                grid.classList.remove('d-none');
+
+            } catch (error) {
+                console.error('Error:', error);
+                carga.classList.add('d-none');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-danger py-3">
+                            <i class="fas fa-exclamation-circle me-2"></i>Error al cargar categorías
+                        </td>
+                    </tr>`;
+                grid.classList.remove('d-none');
+            }
+        }
+
+        function renderizarTablaCategorias(categorias) {
+            const tbody = document.getElementById('tbodyGestionCategorias');
+
+            tbody.innerHTML = categorias.map(c => `
+                <tr data-id="${c.id}" data-nombre="${escapeHtml(c.nombre).toLowerCase()}">
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-tag text-primary me-2"></i>
+                            <strong>${escapeHtml(c.nombre)}</strong>
+                            ${c.id === categoriaSeleccionada?.id ? '<span class="badge bg-primary ms-2">Seleccionada</span>' : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="text-muted small">${escapeHtml(c.descripcion) || '-'}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge ${c.cantidadProductos > 0 ? 'bg-info' : 'bg-secondary'}">
+                            ${c.cantidadProductos}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-warning"
+                                    onclick="mostrarModalEditarCategoria(${c.id}, '${escapeHtml(c.nombre)}', '${escapeHtml(c.descripcion || '')}')"
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger ${!c.puedeEliminar ? 'disabled' : ''}"
+                                    onclick="${c.puedeEliminar ? `mostrarModalEliminarCategoria(${c.id}, '${escapeHtml(c.nombre)}', ${c.cantidadProductos})` : ''}"
+                                    title="${c.puedeEliminar ? 'Eliminar' : 'Tiene productos asociados'}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="seleccionarCategoriaDesdeGestion(${c.id}, '${escapeHtml(c.nombre)}')"
+                                    title="Seleccionar para producto">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarCategoriasGestion() {
+            const termino = document.getElementById('busquedaGestionCategoria').value.toLowerCase();
+            const filtradas = categoriasGestion.filter(c => c.nombre.toLowerCase().includes(termino));
+
+            const sinResultados = document.getElementById('sinResultadosGestionCategorias');
+            const grid = document.getElementById('gridGestionCategorias');
+
+            if (filtradas.length === 0 && termino !== '') {
+                grid.classList.add('d-none');
+                sinResultados.classList.remove('d-none');
+            } else {
+                sinResultados.classList.add('d-none');
+                grid.classList.remove('d-none');
+                renderizarTablaCategorias(filtradas);
+            }
+        }
+
+        // ============ EDITAR CATEGORÍA ============
+
+        function mostrarModalEditarCategoria(id, nombre, descripcion) {
+            document.getElementById('editarCategoriaId').value = id;
+            document.getElementById('editarCategoriaNombre').value = nombre;
+            document.getElementById('editarCategoriaDescripcion').value = descripcion;
+            document.getElementById('errorEditarCategoria').classList.add('d-none');
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarCategoria'));
+            modal.show();
+        }
+
+        async function guardarEdicionCategoria() {
+            const id = parseInt(document.getElementById('editarCategoriaId').value);
+            const nombre = document.getElementById('editarCategoriaNombre').value.trim();
+            const descripcion = document.getElementById('editarCategoriaDescripcion').value.trim();
+            const errorDiv = document.getElementById('errorEditarCategoria');
+
+            // Validaciones
+            if (nombre.length < 2) {
+                errorDiv.textContent = 'El nombre debe tener al menos 2 caracteres';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Productos/EditarCategoria', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    },
+                    body: JSON.stringify({ id, nombre, descripcion })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error al actualizar');
+                }
+
+                // Actualizar lista local
+                const index = todasLasCategorias.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    todasLasCategorias[index].nombre = nombre;
+                    todasLasCategorias[index].descripcion = descripcion;
+                }
+
+                // Si es la categoría seleccionada actualmente, actualizar UI
+                if (categoriaSeleccionada?.id === id) {
+                    categoriaSeleccionada.nombre = nombre;
+                    document.getElementById('nombreCategoriaSeleccionada').textContent = nombre;
+                    document.getElementById('previewCategoria').textContent = nombre;
+                }
+
+                // Cerrar modal y refrescar grid
+                bootstrap.Modal.getInstance(document.getElementById('modalEditarCategoria')).hide();
+
+                // Refrescar gestión
+                await cargarCategoriasParaGestion();
+
+                // Mostrar notificación de éxito (opcional)
+                mostrarToast('Categoría actualizada correctamente', 'success');
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        }
+
+        // ============ ELIMINAR CATEGORÍA ============
+
+        function mostrarModalEliminarCategoria(id, nombre, cantidadProductos) {
+            document.getElementById('eliminarCategoriaId').value = id;
+            document.getElementById('eliminarCategoriaNombre').textContent = nombre;
+
+            const alerta = document.getElementById('alertaProductosAsociados');
+            const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+
+            if (cantidadProductos > 0) {
+                document.getElementById('cantidadProductosEliminar').textContent = cantidadProductos;
+                alerta.classList.remove('d-none');
+                btnConfirmar.disabled = true;
+                btnConfirmar.classList.add('disabled');
+            } else {
+                alerta.classList.add('d-none');
+                btnConfirmar.disabled = false;
+                btnConfirmar.classList.remove('disabled');
+            }
+
+            document.getElementById('errorEliminarCategoria').classList.add('d-none');
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEliminarCategoria'));
+            modal.show();
+        }
+
+        async function confirmarEliminarCategoria() {
+            const id = parseInt(document.getElementById('eliminarCategoriaId').value);
+            const errorDiv = document.getElementById('errorEliminarCategoria');
+
+            try {
+                const response = await fetch('/Productos/EliminarCategoria?id='+ id );
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error al eliminar');
+                }
+
+                // Si la categoría eliminada estaba seleccionada, limpiar selección
+                if (categoriaSeleccionada?.id === id) {
+                    limpiarCategoria();
+                }
+
+                // Remover de lista local
+                todasLasCategorias = todasLasCategorias.filter(c => c.id !== id);
+
+                // Cerrar modal y refrescar
+                bootstrap.Modal.getInstance(document.getElementById('modalEliminarCategoria')).hide();
+                await cargarCategoriasParaGestion();
+
+                mostrarToast('Categoría eliminada correctamente', 'success');
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        }
+
+        // ============ NUEVA CATEGORÍA (Integrada) ============
+
+        function mostrarModalNuevaCategoriaDesdeGestion() {
+            // Limpiar formulario
+            document.getElementById('nuevaCategoriaNombre').value = '';
+            document.getElementById('nuevaCategoriaDescripcion').value = '';
+            document.getElementById('errorNuevaCategoria').classList.add('d-none');
+
+            const modal = new bootstrap.Modal(document.getElementById('modalNuevaCategoria'));
+            modal.show();
+        }
+
+        // Sobrescribir función existente para también refrescar gestión
+        const crearCategoriaRapidaOriginal = crearCategoriaRapida;
+        crearCategoriaRapida = async function() {
+            const nombre = document.getElementById('nuevaCategoriaNombre').value.trim();
+            const descripcion = document.getElementById('nuevaCategoriaDescripcion').value.trim();
+            const errorDiv = document.getElementById('errorNuevaCategoria');
+
+            if (nombre.length < 2) {
+                errorDiv.textContent = 'El nombre debe tener al menos 2 caracteres';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Productos/CrearCategoriaRapida', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    },
+                    body: JSON.stringify({ nombre: nombre, descripcion: descripcion })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error al crear categoría');
+                }
+
+                // Agregar a la lista local
+                const nuevaCat = { id: result.id, nombre: result.nombre, descripcion: descripcion };
+                todasLasCategorias.push(nuevaCat);
+
+                // Seleccionar
+                seleccionarCategoria(result.id, result.nombre);
+
+                // Cerrar modal
+                bootstrap.Modal.getInstance(document.getElementById('modalNuevaCategoria')).hide();
+
+                // Refrescar gestión si está abierta
+                const modalGestion = document.getElementById('modalGestionCategorias');
+                if (modalGestion.classList.contains('show')) {
+                    await cargarCategoriasParaGestion();
+                }
+
+                mostrarToast(`Categoría "${result.nombre}" creada correctamente`, 'success');
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        };
+
+        function seleccionarCategoriaDesdeGestion(id, nombre) {
+            seleccionarCategoria(id, nombre);
+            bootstrap.Modal.getInstance(document.getElementById('modalGestionCategorias')).hide();
+        }
+
+        // ============ UTILIDADES ============
+
+        function mostrarToast(mensaje, tipo = 'info') {
+            // Crear toast dinámicamente
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${tipo === 'success' ? 'success' : tipo === 'error' ? 'danger' : 'primary'} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas ${tipo === 'success' ? 'fa-check-circle' : tipo === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} me-2"></i>
+                            ${mensaje}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+
+            // Agregar al contenedor o crear uno
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+
+            const toastElement = document.createElement('div');
+            toastElement.innerHTML = toastHtml;
+            container.appendChild(toastElement.firstElementChild);
+
+            const toast = new bootstrap.Toast(toastElement.firstElementChild);
+            toast.show();
+
+            // Auto-remover después de ocultarse
+            toastElement.firstElementChild.addEventListener('hidden.bs.toast', function() {
+                this.remove();
+            });
+        }
+
+
+
+        // ========== PROVEEDORES (mismas funciones que antes) ==========
+        async function buscarProveedoresAjax(termino) {
+            try {
+                const response = await fetch(`/Productos/BuscarProveedores?texto=${encodeURIComponent(termino)}`);
+                if (!response.ok) throw new Error('Error');
+                const proveedores = await response.json();
+                mostrarResultadosProveedores(proveedores);
+            } catch (error) {
+                mostrarErrorBusquedaProveedor();
+            } finally {
+                document.getElementById('indicadorCargaProveedor').classList.add('d-none');
+            }
+        }
+
+        function mostrarResultadosProveedores(proveedores) {
+            const contenedor = document.getElementById('resultadosProveedor');
+            if (proveedores.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="list-group-item text-muted text-center py-3">
+                        No se encontraron proveedores
+                        <div class="mt-2">
+                            <button onclick="mostrarModalNuevoProveedor()" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-plus me-1"></i>Crear nuevo
+                            </button>
+                        </div>
+                    </div>`;
+            } else {
+                contenedor.innerHTML = proveedores.map(p => `
+                    <button type="button" class="list-group-item list-group-item-action"
+                            onclick="seleccionarProveedor(${p.id}, '${escapeHtml(p.nombre)}')">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${escapeHtml(p.nombre)}</strong>
+                                <div class="small text-muted">ID: ${p.id}</div>
+                            </div>
+                            <span class="badge bg-info">Seleccionar</span>
+                        </div>
+                    </button>
+                `).join('');
+            }
+            contenedor.style.display = 'block';
+        }
+
+        function mostrarErrorBusquedaProveedor() {
+            document.getElementById('resultadosProveedor').innerHTML = `
+                <div class="list-group-item text-danger text-center py-3">Error al buscar</div>`;
+            document.getElementById('resultadosProveedor').style.display = 'block';
+        }
+
+        function ocultarResultadosProveedor() {
+            document.getElementById('resultadosProveedor').style.display = 'none';
+        }
+
+        function seleccionarProveedor(id, nombre) {
+            proveedorSeleccionado = { id, nombre };
+            document.getElementById('idProveedor').value = id;
+            
+            document.getElementById('nombreProveedorSeleccionado').textContent = nombre;
+            document.getElementById('sinProveedor').classList.add('d-none');
+            document.getElementById('infoProveedor').classList.remove('d-none');
+            ocultarResultadosProveedor();
+            document.getElementById('buscadorProveedor').value = '';
+            document.getElementById('previewProveedor').classList.remove('d-none');
+            document.getElementById('textoProveedorPreview').textContent = nombre;
+        }
+
+        function limpiarProveedor() {
+            proveedorSeleccionado = null;
+            document.getElementById('idProveedor').value = '';
+            document.getElementById('infoProveedor').classList.add('d-none');
+            document.getElementById('sinProveedor').classList.remove('d-none');
+            document.getElementById('previewProveedor').classList.add('d-none');
+        }
+
+        function mostrarModalProveedores() {
+            const modal = new bootstrap.Modal(document.getElementById('modalProveedores'));
+            modal.show();
+            cargarProveedoresModal();
+        }
+
+        async function cargarProveedoresModal() {
+            const tbody = document.getElementById('tbodyProveedoresModal');
+            const carga = document.getElementById('cargaModalProveedor');
+             const sinResultados = document.getElementById('sinResultadosModalProveedor');
+
+            tbody.innerHTML = '';
+            carga.classList.remove('d-none');
+            sinResultados.classList.add('d-none');
+            try {
+                const busqueda = document.getElementById('busquedaModalProveedor').value;
+                let url = '/Productos/BuscarProveedores?texto=' + encodeURIComponent(busqueda || 'a');
+
+                const response = await fetch(url);
+                const proveedores = await response.json();
+
+                carga.classList.add('d-none');
+
+                if (proveedores.length === 0) {
+                    sinResultados.classList.remove('d-none');
+                } else {
+                    tbody.innerHTML = proveedores.map(p => `
+                        <tr>
+                            <td>${p.id}</td>
+                            <td><strong>${escapeHtml(p.nombre)}</strong></td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-info" onclick="seleccionarProveedorDesdeModal(${p.id}, '${escapeHtml(p.nombre)}')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                carga.classList.add('d-none');
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error</td></tr>';
+            }
+        }
+
+        function seleccionarProveedorDesdeModal(id, nombre) {
+            seleccionarProveedor(id, nombre);
+            bootstrap.Modal.getInstance(document.getElementById('modalProveedores')).hide();
+        }
+
+        function mostrarModalNuevoProveedor() {
+            const modal = new bootstrap.Modal(document.getElementById('modalNuevoProveedor'));
+            modal.show();
+            document.getElementById('nuevoProveedorNombre').value = '';
+            document.getElementById('errorNuevoProveedor').classList.add('d-none');
+        }
+
+        async function crearProveedorRapido() {
+            const nombre = document.getElementById('nuevoProveedorNombre').value.trim();
+            const errorDiv = document.getElementById('errorNuevoProveedor');
+
+            if (nombre.length < 2) {
+                errorDiv.textContent = 'El nombre debe tener al menos 2 caracteres';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Productos/CrearProveedorRapido', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre: nombre })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) throw new Error(result.error || 'Error');
+
+                seleccionarProveedor(result.id, result.nombre);
+                bootstrap.Modal.getInstance(document.getElementById('modalNuevoProveedor')).hide();
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('d-none');
+            }
+        }
+
+        // ========== FUNCIONES DE PREVIEW Y CÁLCULOS ==========
+        function actualizarPreview() {
+            const nombre = document.getElementById('nombre').value || 'Nombre del Producto';
+            const codigo = document.getElementById('codigo').value || 'PROD-000';
+            const precio = parseFloat(document.getElementById('precioVenta').value) || 0;
+            const stock = parseFloat(document.getElementById('stockInicial').value) || 0;
+            const unidad = document.getElementById('abreviaturaStock').textContent;
+
+            document.getElementById('previewNombre').textContent = nombre;
+            document.getElementById('previewCodigo').textContent = codigo;
+            document.getElementById('previewPrecio').textContent = `S/ ${precio.toFixed(2)}`;
+            document.getElementById('previewStock').textContent = `${stock} ${unidad}`;
+        }
+
+        function calcularMargen() {
+            const compra = parseFloat(document.getElementById('precioCompra').value) || 0;
+            const venta = parseFloat(document.getElementById('precioVenta').value) || 0;
+
+            if (compra > 0 && venta > 0) {
+                const margen = ((venta - compra) / compra) * 100;
+                document.getElementById('margenPorcentaje').value = `${margen.toFixed(1)}%`;
+
+                let alertClass = 'alert-danger';
+                let mensaje = 'Margen bajo';
+
+                if (margen >= 30) { alertClass = 'alert-success'; mensaje = 'Margen óptimo'; }
+                else if (margen >= 20) { alertClass = 'alert-warning'; mensaje = 'Margen aceptable'; }
+                else if (margen <= 0) { mensaje = '¡Pérdida!'; }
+
+                document.getElementById('previewMargen').className = `alert ${alertClass} small mb-0`;
+                document.getElementById('previewMargen').innerHTML = `<i class="fas fa-calculator me-2"></i>Margen: ${margen.toFixed(1)}%`;
+            }
+
+            actualizarPreview();
+        }
+
+        function generarCodigo() {
+            const prefix = 'PROD';
+            const fecha = new Date();
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            const codigo = `${prefix}-${fecha.getFullYear()}${(fecha.getMonth()+1).toString().padStart(2,'0')}-${random}`;
+            document.getElementById('codigo').value = codigo;
+            actualizarPreview();
+        }
+
+        function validarCodigo() {
+            // Implementar validación AJAX si es necesario
+        }
+
+        function limpiarFormulario() {
+            if (confirm('¿Limpiar todo?')) location.reload();
+        }
+
+        // Validación Bootstrap
+        (function () {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+    </script>
+}

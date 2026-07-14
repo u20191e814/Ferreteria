@@ -1,0 +1,130 @@
+﻿@model IEnumerable<Ferreteria.DTOs.ProveedorDto>
+@{
+    ViewData["Title"] = "Proveedores";
+    var busqueda = ViewBag.Busqueda as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+         
+        <h2 class="mb-0"> Gestión de Proveedores</h2>
+        @* <p class="text-muted mb-0">Administre los proveedores de productos</p> *@
+    </div>
+    <a asp-action="Create" class="btn btn-success btn-lg">
+        <i class="fas fa-plus me-2"></i>Nuevo Proveedor
+    </a>
+</div>
+
+@* Buscador *@
+<div class="card filter-card mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-3">
+            <div class="col-md-8">
+                <div class="input-group">
+                     
+                    <input type="text" name="busqueda" class="form-control"
+                           placeholder="Buscar por nombre de proveedor..."
+                           value="@busqueda">
+                    @if (!string.IsNullOrEmpty(busqueda))
+                    {
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Limpiar
+                        </a>
+                    }
+                </div>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary ">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* Tabla de Proveedores *@
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Nombre del Proveedor</th>
+                        <th class="text-center">Productos Asociados</th>
+                        <th class="text-center">Fecha Registro</th>
+                        <th class="text-end pe-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block opacity-25"></i>
+                                <h5>No se encontraron proveedores</h5>
+                                @if (!string.IsNullOrEmpty(busqueda))
+                                {
+                                    <p>Intenta con otra búsqueda o <a asp-action="Index">ver todos</a></p>
+                                }
+                                else
+                                {
+                                    <a asp-action="Create" class="btn btn-primary">
+                                        <i class="fas fa-plus me-2"></i>Crear primer proveedor
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="badge bg-secondary">#@item.Id</span>
+                                </td>
+                                <td>
+                                    <strong class="fs-6">@item.Nombre</strong>
+                                </td>
+                                <td class="text-center">
+                                    @if (item.CantidadProductos > 0)
+                                    {
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-box me-1"></i>@item.CantidadProductos productos
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark">Sin productos</span>
+                                    }
+                                </td>
+                                <td class="text-center text-muted">
+                                    <i class="fas fa-calendar-alt me-1"></i>@item.FechaCreacion.ToString("dd-MM-yyyy")
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @if (Model.Any())
+    {
+        <div class="card-footer bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">Total: <strong>@Model.Count()</strong> proveedores</span>
+            </div>
+        </div>
+    }
+</div>

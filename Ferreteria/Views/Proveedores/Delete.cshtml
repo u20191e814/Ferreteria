@@ -1,0 +1,99 @@
+﻿@model Ferreteria.DTOs.ProveedorDto
+@{
+    ViewData["Title"] = "Eliminar Proveedor";
+    var cantidadProductos = ViewBag.CantidadProductos as int? ?? 0;
+    var puedeEliminar = ViewBag.PuedeEliminar as bool? ?? false;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+     
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left me-2"></i>Volver a Editar
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-danger shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-trash me-2"></i>Confirmar Eliminación</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert @(puedeEliminar ? "alert-warning" : "alert-danger") mb-4">
+                    <h6 class="alert-heading">
+                        <i class="fas @(puedeEliminar ? "fa-exclamation-circle" : "fa-ban") me-2"></i>
+                        @(puedeEliminar ? "Advertencia" : "No se puede eliminar")
+                    </h6>
+                    <p class="mb-0">
+                        @if (puedeEliminar)
+                        {
+                            <span>Está a punto de eliminar permanentemente el proveedor <strong>@Model.Nombre</strong>.</span>
+                        }
+                        else
+                        {
+                            <span>
+                                El proveedor <strong>@Model.Nombre</strong> tiene <strong>@cantidadProductos producto(s)</strong> asociados.
+                                Debe reasignar o eliminar esos productos antes de poder eliminar este proveedor.
+                            </span>
+                        }
+                    </p>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">ID</label>
+                        <p class="fw-bold">#@Model.Id</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Nombre</label>
+                        <p class="fw-bold fs-5">@Model.Nombre</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Productos Asociados</label>
+                        <p>
+                            <span class="badge @(cantidadProductos > 0 ? "bg-primary" : "bg-light text-dark") fs-6">
+                                @cantidadProductos productos
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Fecha de Registro</label>
+                        <p>@(Model.FechaCreacion.ToString("dd/MM/yyyy") ?? "-")</p>
+                    </div>
+                </div>
+
+                @if (!puedeEliminar && cantidadProductos > 0)
+                {
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>¿Qué puedo hacer?</h6>
+                        <ul class="mb-0">
+                            <li>Edite los productos asociados y cambie el proveedor</li>
+                            <li>Elimine los productos si ya no son necesarios</li>
+                            <li>Mantenga el proveedor inactivo en lugar de eliminarlo</li>
+                        </ul>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-end">
+                    
+                    @if (puedeEliminar)
+                    {
+                        <form asp-action="Delete" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-trash me-2"></i>Si, eliminar
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Productos" asp-action="Index" asp-route-proveedorId="@Model.Id"
+                           class="btn btn-primary btn-lg">
+                            <i class="fas fa-box me-2"></i>Gestionar productos primero
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

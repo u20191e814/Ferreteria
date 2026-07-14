@@ -1,0 +1,231 @@
+﻿@using Ferreteria.DTOs
+@model IEnumerable<Ferreteria.DTOs.ProductoListDto>
+@{
+    ViewData["Title"] = "Catálogo de Productos";
+    var categorias = ViewBag.Categorias as IEnumerable<CategoriaDto> ?? new List<CategoriaDto>();
+    var categoriaId  =ViewBag.CategoriaId as int? ?? null; 
+    var ProveedorId = ViewBag.ProveedorId as int? ?? null;
+    var estadoqq = ViewBag.Estado as int? ?? -1;
+    var search = Context.Request.Query["search"].ToString();
+    var estado = "";
+    if (estadoqq !=-1)
+    {
+        estado = estadoqq.ToString();
+    }
+
+    var pageSize = Context.Request.Query["pageSize"].ToString() ?? "10";
+    var currentPage = int.TryParse(Context.Request.Query["page"].ToString(), out var cp) ? cp : 1;
+
+    var totalItems = ViewBag.Total as int? ?? 0;
+    var itemsPerPage = int.TryParse(pageSize, out var ps) ? ps : 10;
+    var totalPages = (int)Math.Ceiling((double)totalItems / itemsPerPage);
+     
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">Productos</h2>
+        <p class="text-muted mb-0">Gestión de inventario y catálogo</p>
+    </div>
+    <div>
+        <a asp-action="StockBajo" class="btn btn-warning me-2">
+            <i class="fas fa-exclamation-triangle me-2"></i>Ver Stock Bajo
+        </a>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nuevo Producto
+        </a>
+    </div>
+</div>
+<div class="card filter-card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+           
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Categoría</label>
+                <select name="categoriaId" class="form-select">
+                    <option value="">Todos</option>
+                    <!-- Opciones dinámicas -->
+                    @foreach (var categoria in categorias)
+                    {
+                        if (categoriaId == categoria.Id)
+                            {
+                            <option value="@categoria.Id" selected>@categoria.Nombre</option>
+                            }
+                            else{
+                                <option value="@categoria.Id" >@categoria.Nombre</option>
+                        }
+                        
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Proveedor</label>
+                <select name="proveedorId" class="form-select">
+                    <option value="">Todos</option>
+                    @if (ViewBag.Proveedores != null)
+                    {
+                        @foreach (var provee in ViewBag.Proveedores)
+                        {
+                            <option value="@provee.Id" selected="@(ViewBag.ProveedorId == provee.Id)">
+                                @provee.Nombre
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="" selected="@(estado == "")">Todos</option>
+                    <option value="1" selected="@(estado == "1")">Activo</option>
+                    <option value="0" selected="@(estado == "0")">No activo</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Producto</label>
+                <div class="input-group">
+                    
+                    <input type="text" name="search" class="form-control" placeholder="Ingrese nombre, código, descripción..." value="@Context.Request.Query["search"]">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Registros por página</label>
+                <select name="pageSize" class="form-select" onchange="this.form.submit()">
+                    <option value="10" selected="@(pageSize == "10")">10 registros</option>
+                    <option value="20" selected="@(pageSize == "20")">20 registros</option>
+                    <option value="50" selected="@(pageSize == "50")">50 registros</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex align-items-end justify-content-end gap-1">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card table-modern">
+    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold gradient-text">
+            <i class="fas fa-list me-2"></i>Listado de productos
+        </h5>
+        
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="tablaProductos">
+                <thead>
+                    <tr>         
+                        <th>Nro</th>
+                        <th>Producto</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Proveedor</th>
+                        <th>Precio de venta</th>
+                        <th>Stock</th>
+                        <th>Ubicación</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBody">
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                             
+                            <tr>
+                                <td>
+                                @item.listorder
+                                </td>
+
+                                <td>
+                                    <div >@item.Nombre</div>
+                                    <div class="text-muted small">Código: @item.Codigo</div>
+                                    <div class=text-muted small">Unidad: @item.UnidadMedida</div>
+                                </td>
+                                <td>@item.Descripcion</td>
+                                <td>  @item.CategoriaNombre  </td>
+                                <td> @item.NombreProveedor   </td>
+                                <td> <strong class="text-primary fs-5">S/ @item.PrecioVenta.ToString("N2")</strong> </td>
+                                <td>
+                                    <span class="badge @(item.StockBajo ? "bg-danger" : "bg-success") fs-6">
+                                        @item.StockActual.ToString("N2") @item.UnidadMedidaAbreviatura
+                                    </span>
+                                    @if (item.StockBajo)
+                                    {
+                                        <div>
+                                            <span class="badge bg-danger"><i class="fas fa-exclamation"></i> Stock Bajo</span>
+                                        </div>
+                                       
+                                    }
+                                </td>
+                                <td >  @item.UbicacionAlmacen </td>
+                                <td>
+                                   @if (item.Activo)
+                                    {
+                                        <span class="badge bg-success " ) fs-6">
+                                            Activo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger" ) fs-6">
+                                           Inactivo
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <a asp-action="Edit" asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-primary rounded-pill px-3" title="Editar">
+                                        <i class="fa-solid fa-pen-to-square"></i> Editar
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
+                                <p class="mb-0">No se encontraron productos con los filtros aplicados</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                 
+            </table>
+        </div>
+    </div>
+
+    
+    <div class="card-footer bg-white border-0 py-3 px-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Mostrando <strong>
+                    @((currentPage - 1) * itemsPerPage + 1) -
+                    @(Math.Min(currentPage * itemsPerPage, totalItems))
+                </strong> de
+                <strong>@totalItems</strong> registros
+            </small>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                     
+
+                    @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                    {
+                        <li class="page-item @(i == currentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { categoriaId = categoriaId, proveedorId = ProveedorId, search = search, page = i, pageSize, estado })">@i</a>
+                        </li>
+                    }
+
+                     
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+  
