@@ -302,7 +302,8 @@
             const ruc = document.getElementById('numeroDocumento').value.trim();
 
             if (!/^\d{11}$/.test(ruc)) {
-                alert('Ingrese un RUC válido de 11 dígitos');
+                swal("RUC",'Ingrese un RUC válido de 11 dígitos', "info");
+                 
                 return;
             }
 
@@ -320,7 +321,8 @@
                 btn.disabled = false;
 
                 // Mostrar notificación
-                alert('Datos consultados de SUNAT (simulación)');
+                 
+                swal("Sunat",'Datos consultados de SUNAT (Pendiente)', "info");
             }, 1500);
         }
 

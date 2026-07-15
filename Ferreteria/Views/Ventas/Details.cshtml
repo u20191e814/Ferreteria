@@ -336,7 +336,8 @@
 
             } catch (error) {
                 console.error('Error generando PDF A4:', error);
-                alert('Error al generar el PDF. Por favor intente nuevamente.');
+                swal("PDF A4",'Error al generar el PDF. Por favor intente nuevamente.', "error");
+                 
             } finally {
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
@@ -400,7 +401,8 @@
 
             } catch (error) {
                 console.error('Error generando PDF Ticket:', error);
-                alert('Error al generar el PDF. Por favor intente nuevamente.');
+                swal("PDF Ticket",'Error al generar el PDF. Por favor intente nuevamente.', "error");
+                 
             } finally {
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
@@ -426,12 +428,16 @@
                         document.getElementById('btnConfirmarAnulacion').disabled = true;
                         document.getElementById('alertaAnulacion').classList.add('d-none');
                     } else {
-                        alert(data.mensaje || 'No se puede anular esta venta.');
+                         
+                         swal("Anular",data.mensaje || 'No se puede anular esta venta.', "error");
+
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error al validar la anulación.');
+                    
+                     swal("Anulacion",'Error al validar la anulación.', "error");
+
                 });
         }
 
@@ -471,7 +477,8 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error al cargar detalle de anulación.');
+                    swal("Anulacion",'Error al cargar detalle de anulación.', "error");
+                     
                 });
         }
 

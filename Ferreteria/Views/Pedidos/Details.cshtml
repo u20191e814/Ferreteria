@@ -486,7 +486,8 @@
         function seleccionarProducto(id, codigo, nombre, precio, stock, unidad) {
             // Verificar si ya está en la lista
             if (productosEnLista.some(p => p.productoId === id)) {
-                alert('Este producto ya está en la lista');
+                swal("Producto", "Este producto ya está en la lista", "info");
+               
                 return;
             }
 
@@ -567,7 +568,8 @@
         function actualizarCantidad(index, valor) {
             const cantidad = parseFloat(valor);
             if (cantidad > productosEnLista[index].stock) {
-                alert(`Stock insuficiente. Máximo disponible: ${productosEnLista[index].stock}`);
+                swal("Producto", `Stock insuficiente. Máximo disponible: ${productosEnLista[index].stock}`, "info");
+                 
                 return;
             }
             productosEnLista[index].cantidad = cantidad;
@@ -618,12 +620,14 @@
 
                        
                     } else {
-                        alert(data.error || 'No se puede convertir este pedido');
+                        swal("Pedido", data.error || 'No se puede convertir este pedido', "error");
+                        
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error al validar el pedido');
+                    swal("Pedido",'Error al validar el pedido', "error");
+                     
                 });
             }
             

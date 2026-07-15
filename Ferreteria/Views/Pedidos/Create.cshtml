@@ -517,7 +517,8 @@
                 
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error al cargar información del cliente');
+                swal("Cliente", "Error al cargar información del cliente", "error");
+                 
             }
         }
 
@@ -666,7 +667,8 @@
             const cantidad = parseFloat(cantidadInput.value);
             
             if (!cantidad || cantidad <= 0) {
-                alert('Ingrese una cantidad válida');
+                swal("Producto", "Ingrese una cantidad válida", "error");
+                 
                 return;
             }
             
@@ -760,7 +762,8 @@
         function actualizarCantidad(index, valor) {
             const cantidad = parseFloat(valor);
             if (cantidad <= 0) {
-                alert('La cantidad debe ser mayor a 0');
+                 swal("Producto", "La cantidad debe ser mayor a 0", "error");
+                 
                 renderizarTablaProductos();
                 return;
             }
@@ -868,14 +871,28 @@
             document.getElementById('btnGuardar').disabled = !(tieneCliente && tieneProductos);
         }
 
-        function guardarBorrador() {
-            alert('Función de borrador no implementada. El pedido se guardará normalmente.');
-        }
+         
 
         function limpiarFormulario() {
-            if (confirm('¿Está seguro de limpiar todo el formulario?')) {
-                location.reload();
-            }
+
+            swal({
+             title: "¿Estás seguro de limpiar todo el formulario?",
+             text: "¡No podrás revertir esto!",
+             type: "warning",
+             showCancelButton: true,
+             confirmButtonColor: "#DD6B55",
+             confirmButtonText: "¡Sí!",
+             cancelButtonText: "¡No!",
+             closeOnConfirm: false,
+             closeOnCancel: false
+             }, function(isConfirm) {
+                 if (isConfirm) {
+
+                        location.reload();
+                        swal("Exito!!", "El formulario fue limpiado.", "success");
+                 }
+             });
+            
         }
          
 
@@ -885,7 +902,7 @@
             const fechaEntrega = document.getElementById("fechaEntrega");
             if (fechaEntrega.value.trim() === "") {
                 e.preventDefault(); // evita que se envíe el formulario
-               // alert("Debes ingresar observaciones antes de enviar el formulario.");
+               
                fechaEntrega.classList.add("is-invalid");
             }
             else {
@@ -894,7 +911,7 @@
             const obs = document.getElementById("observaciones");
             if (obs.value.trim() === "") {
                 e.preventDefault(); // evita que se envíe el formulario
-               // alert("Debes ingresar observaciones antes de enviar el formulario.");
+               
                obs.classList.add("is-invalid");
             }
             else {
@@ -902,13 +919,15 @@
             }
             if (productosEnPedido.length === 0) {
                 e.preventDefault();
-                alert('Debe agregar al menos un producto al pedido');
+                 swal("Producto", "Debe agregar al menos un producto al pedido", "error");
+                
                 return false;
             }
             
             if (!document.getElementById('clienteId').value) {
-                e.preventDefault();
-                alert('Debe seleccionar un cliente');
+                e.preventDefault
+                 swal("Cliente", "Debe seleccionar un cliente", "error");
+                
                 document.getElementById('buscadorCliente').focus();
                 return false;
             }

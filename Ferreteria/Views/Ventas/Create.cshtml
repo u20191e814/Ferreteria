@@ -488,7 +488,8 @@
 
             } catch (error) {
                 console.error('Error seleccionando cliente:', error);
-                alert('Error al cargar información del cliente: ' + error.message);
+                 swal("Cliente", 'Error al cargar información del cliente: ' + error.message, "error");
+                 
             }
         }
 
@@ -599,7 +600,8 @@
             try {
                 // Verificar si ya está en la venta
                 if (productosEnVenta.some(p => p.id === productoId)) {
-                    alert('Este producto ya está agregado a la venta. Modifique la cantidad en la tabla.');
+                      swal("Producto", 'Este producto ya está agregado a la venta. Modifique la cantidad en la tabla.', "info");
+                    
                     return;
                 }
 
@@ -611,7 +613,8 @@
 
                 // Verificar stock
                 if (producto.stockActual <= 0) {
-                    alert('Este producto no tiene stock disponible');
+                    swal("Producto", 'Este producto no tiene stock disponible', "info");
+                     
                     return;
                 }
 
@@ -642,7 +645,8 @@
 
             } catch (error) {
                 console.error('Error agregando producto:', error);
-                alert('Error al agregar el producto: ' + error.message);
+                swal("Producto", 'Error al agregar el producto: ' + error.message, "error");
+                 
             }
         }
 
@@ -724,7 +728,7 @@
             const producto = productosEnVenta[index];
 
             if (cantidad > producto.stockActual) {
-                alert(`Stock insuficiente. Stock disponible: ${producto.stockActual} ${producto.unidadMedidaAbreviatura}`);
+                 swal("Producto", `Stock insuficiente. Stock disponible: ${producto.stockActual} ${producto.unidadMedidaAbreviatura}`, "error");
                 // Restaurar valor anterior
                 renderizarTablaProductos();
                 return;
@@ -756,12 +760,29 @@
         }
 
         function eliminarProductoVenta(index) {
-            if (confirm('¿Eliminar este producto de la venta?')) {
-                productosEnVenta.splice(index, 1);
-                renderizarTablaProductos();
-                calcularTotales();
-                validarFormulario();
-            }
+
+             swal({
+             title: "¿Estás seguro de eliminar este producto de la venta?",
+             text: "¡No podrás revertir esto!",
+             type: "warning",
+             showCancelButton: true,
+             confirmButtonColor: "#DD6B55",
+             confirmButtonText: "¡Sí!",
+             cancelButtonText: "¡No!",
+             closeOnConfirm: false,
+             closeOnCancel: false
+             }, function(isConfirm) {
+                 if (isConfirm) {
+
+                        productosEnVenta.splice(index, 1);
+                        renderizarTablaProductos();
+                        calcularTotales();
+                        validarFormulario();
+                        swal("Exito!!", "El producto ha sido eliminado.", "success");
+                 }  
+             });
+
+            
         }
 
         function calcularTotales() {
@@ -821,9 +842,7 @@
             document.getElementById('btnProcesar').disabled = !(tieneCliente && tieneProductos && productosValidos);
         }
 
-        function imprimirProforma() {
-            alert('Imprimiendo proforma...');
-        }
+        
 
         // Modal clientes
         async function mostrarModalClientes() {
