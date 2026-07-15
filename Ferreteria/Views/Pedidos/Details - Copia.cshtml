@@ -373,9 +373,9 @@
                                     <p class="mb-1"><strong>Documento:</strong> @Model.ClienteDocumento</p>
                                 </div>
                                 <div class="col-md-6 text-md-end">
-                                    <p class="mb-1"><strong>SubTotal:</strong> <span id="subtotalModal">S/ @Model.SubTotal.ToString("N2")</span></p>
-                                    <p class="mb-1"><strong>IGV (18%):</strong> <span id="igvModal">S/ @Model.Impuestos.ToString("N2")</span></p>
-                                    <p class="mb-0 fs-5 text-primary"><strong>Total:</strong> <span id="totalModal">S/ @Model.Total.ToString("N2")</span></p>
+                                    <p class="mb-1"><strong>SubTotal:</strong> S/ @Model.SubTotal.ToString("N2")</p>
+                                    <p class="mb-1"><strong>IGV (18%):</strong> S/ @Model.Impuestos.ToString("N2")</p>
+                                    <p class="mb-0 fs-5 text-primary"><strong>Total:</strong> S/ @Model.Total.ToString("N2")</p>
                                 </div>
                             </div>
                         </div>
@@ -410,7 +410,7 @@
                             <tfoot class="table-group-divider">
                                 <tr class="fw-bold">
                                     <td colspan="3" class="text-end">TOTAL:</td>
-                                    <td class="text-end text-primary fs-5"><span id="totalFooter">S/ @Model.Total.ToString("N2")</span></td>
+                                    <td class="text-end text-primary fs-5">S/ @Model.Total.ToString("N2")</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -596,7 +596,8 @@
             return div.innerHTML;
         }
         
-        // Funciones para conversión a venta
+        mostrarModalConvertirVenta();
+                // Funciones para conversión a venta
         function mostrarModalConvertirVenta() {
             if ("@Model.Estado" == "FINALIZADO") {
                 // Validar primero vía AJAX
@@ -604,13 +605,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.valido) {
-                        const modalEl = document.getElementById('modalConvertirVenta');
-                        const modal = new bootstrap.Modal(modalEl);
-                        modal.show();
-
-                        // Después de mostrar el modal configurar listeners y totales
-                        configurarComportamientoComprobante();
-                        actualizarTotalesVenta();
+                        new bootstrap.Modal(document.getElementById('modalConvertirVenta')).show();
                     } else if (data.yaConvertido) {
                         document.getElementById('alertaVentaExistente').classList.remove('d-none');
                         document.getElementById('btnConvertirVenta').disabled = true;
@@ -627,50 +622,6 @@
                 });
             }
             
-        }
-
-        // Configura los listeners en los radio buttons (solo una vez)
-        let comprobanteListenersConfigurados = false;
-        function configurarComportamientoComprobante() {
-            if (comprobanteListenersConfigurados) return;
-            const radios = document.querySelectorAll('input[name="TipoComprobante"]');
-            radios.forEach(r => r.addEventListener('change', actualizarTotalesVenta));
-            comprobanteListenersConfigurados = true;
-        }
-
-        // Calcula y actualiza los totales mostrados en el modal según el tipo de comprobante
-        function actualizarTotalesVenta() {
-            // Tomamos el subtotal desde el servidor (valor seguro) usando invariant culture para evitar comas
-            const subtotal = parseFloat('@Model.SubTotal.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)') || 0;
-            const igvRate = 0.18;
-
-            const tipo = document.querySelector('input[name="TipoComprobante"]:checked')?.value || 'PROFORMA';
-            let igv = 0;
-            let total = subtotal;
-
-            if (tipo === 'PROFORMA') {
-                igv = 0;
-                total = subtotal;
-            } else {
-                // BOLETA o FACTURA aplican IGV
-                igv = +(subtotal * igvRate);
-                // redondeo a 2 decimales
-                igv = Math.round(igv * 100) / 100;
-                total = Math.round((subtotal + igv) * 100) / 100;
-            }
-
-            // Formateo simple a 2 decimales, prefijo S/
-            const format = v => 'S/ ' + v.toFixed(2);
-
-            const subtotalEl = document.getElementById('subtotalModal');
-            const igvEl = document.getElementById('igvModal');
-            const totalEl = document.getElementById('totalModal');
-            const totalFooter = document.getElementById('totalFooter');
-
-            if (subtotalEl) subtotalEl.textContent = format(subtotal);
-            if (igvEl) igvEl.textContent = format(igv);
-            if (totalEl) totalEl.textContent = format(total);
-            if (totalFooter) totalFooter.textContent = format(total);
         }
 
         // Validación del formulario antes de enviar

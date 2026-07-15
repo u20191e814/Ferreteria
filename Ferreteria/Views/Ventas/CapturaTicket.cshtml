@@ -329,7 +329,7 @@
         <!-- Badge -->
         <div class="badge-container">
             <div class="badge-type">
-                @(Model.NumeroFactura.StartsWith("F") ? "Factura" : "Boleta")
+                @(Model.TipoComprobante )
             </div>
             <div class="invoice-number">@Model.NumeroFactura</div>
         </div>

@@ -87,6 +87,22 @@ namespace Ferreteria.Repositories
 
             try
             {
+                string inicial = "B-";
+                if (datosVenta.TipoComprobante == "PROFORMA")
+                {
+                    datosVenta.IncluyeIGV = false;
+                    inicial = "P-";
+                }
+                else if (datosVenta.TipoComprobante == "BOLETA")
+                {
+                    datosVenta.IncluyeIGV = true;
+                    inicial = "B-";
+                }
+                else if (datosVenta.TipoComprobante == "FACTURA")
+                {
+                    datosVenta.IncluyeIGV = true;
+                    inicial = "F-";
+                }
                 using (SqlConnection cn = new(_connectionString))
                 {
 
@@ -101,12 +117,11 @@ namespace Ferreteria.Repositories
 
                         // 2. Obtener detalles del pedido
                         var detallesPedido = (await GetDetallesAsync(pedidoId)).ToList();
-
-                        // 3. Generar número de comprobante
-
-                        const string getNumero = @"
-                    SELECT 'B-' + FORMAT(GETDATE(), 'yyyyMMdd') + '-' +   RIGHT('0000' + CAST(ISNULL(MAX(CAST(SUBSTRING(NumeroFactura, 12, 4) as INT)), 0) + 1 as VARCHAR), 4)
-                    FROM [TiendaDB].[dbo].Ventas   WHERE CAST(FechaVenta as DATE) = CAST(GETDATE() as DATE)";
+                         
+                        // Generar número de factura
+                        string getNumero = $@"  SELECT '{inicial}'  + 
+                           RIGHT('00000000' + CAST(ISNULL(MAX(CAST(SUBSTRING(NumeroFactura, 3, 8) as INT)), 0) + 1 as VARCHAR), 8)
+                           FROM [TiendaDB].[dbo].Ventas  WHERE TipoComprobante = '{datosVenta.TipoComprobante}'";
 
                         var numeroFactura = await cn.QuerySingleAsync<string>(getNumero, transaction: transaction);
 
@@ -118,6 +133,22 @@ namespace Ferreteria.Repositories
                         @FechaVenta, @SubTotal, @Impuestos, @Total, @Observaciones, 'COMPLETADA',@MetodoPago );
                     SELECT CAST(SCOPE_IDENTITY() as int);";
 
+                        decimal subTotal = 0;
+                        foreach (var det in detallesPedido)
+                        {
+                            det.Descuento = (det.PrecioUnitario * det.Cantidad) * (datosVenta.PorcentajeDescuentoClient / 100);
+
+                            subTotal += (det.PrecioUnitario * det.Cantidad) - det.Descuento;
+                        }
+                        decimal nuevoimpuesto = 0.18m;
+                        if (!datosVenta.IncluyeIGV)
+                        {
+                            nuevoimpuesto = 0.0m;
+                        }
+                        var impuestos = subTotal * nuevoimpuesto;
+                        var descuentoTotal = detallesPedido.Sum(j => j.Descuento);
+                        var total = (subTotal + impuestos);
+
                         var ventaId = await cn.QuerySingleAsync<int>(insertVenta, new
                         {
                             NumeroFactura = numeroFactura,
@@ -127,9 +158,12 @@ namespace Ferreteria.Repositories
                             datosVenta.TipoComprobante,
                             MetodoPago = datosVenta.MetodoPago,
                             FechaVenta = datosVenta.FechaEmision,
-                            SubTotal = detallesPedido.Sum(d => d.SubTotal),
-                            Impuestos = detallesPedido.Sum(d => d.SubTotal) * 0.18m,
-                            Total = detallesPedido.Sum(d => d.SubTotal) * 1.18m,
+                            SubTotal= subTotal,
+                            //SubTotal = detallesPedido.Sum(d => d.SubTotal),
+                            Impuestos = impuestos,
+                            //Impuestos = detallesPedido.Sum(d => d.SubTotal) * 0.18m,
+                            //Total = detallesPedido.Sum(d => d.SubTotal) * 1.18m,
+                            Total = total,
                             datosVenta.Observaciones
                         }, transaction);
 
@@ -196,7 +230,8 @@ namespace Ferreteria.Repositories
                             VentaId = ventaId,
                             Comprobante = datosVenta.TipoComprobante,
                             NumeroCompleto = $"{numeroFactura}",
-                            Total = detallesPedido.Sum(d => d.SubTotal) * 1.18m,
+                            Total = total,
+                            //Total = detallesPedido.Sum(d => d.SubTotal) * 1.18m,
                             FechaEmision = datosVenta.FechaEmision
                         };
                     }
@@ -262,11 +297,10 @@ namespace Ferreteria.Repositories
                     try
                     {
                         // Generar número de pedido
-                        const string getNumero = @"
-                    SELECT 'PED-' + FORMAT(GETDATE(), 'yyyyMMdd') + '-' + 
-                           RIGHT('000' + CAST(COUNT(*) + 1 as VARCHAR), 3)
+                        const string getNumero = @" SELECT 'PED' +  '-' +  RIGHT('00000000' + CAST(COUNT(*) + 1 as VARCHAR), 8)
                     FROM [TiendaDB].[dbo].Pedidos 
-                    WHERE CAST(FechaPedido as DATE) = CAST(GETDATE() as DATE)";
+                   ";
+                        // WHERE CAST(FechaPedido as DATE) = CAST(GETDATE() as DATE)
 
                         var numeroPedido = await cn.QuerySingleAsync<string>(getNumero, transaction: transaction);
 
@@ -279,7 +313,8 @@ namespace Ferreteria.Repositories
                             subTotal += (precio * det.Cantidad) - det.Descuento;
                         }
 
-                        var impuestos = subTotal * 0.18m; // IGV 18%
+                        //var impuestos = subTotal * 0.18m; // IGV 18%
+                        var impuestos = subTotal * 0m;
                         var total = subTotal + impuestos;
 
                         // Insertar pedido

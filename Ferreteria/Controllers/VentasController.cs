@@ -32,7 +32,7 @@ namespace Ferreteria.Controllers
         }
 
         public async Task<IActionResult> Index(    DateTime fechaInicio,    DateTime fechaFin,    string metodoPago,
-                    string estado, string clienteBusqueda,      int? usuarioId,int page = 1,  int pageSize = 10)                 
+                    string estado, string clienteBusqueda, string tipoComprobante,      int? usuarioId,int page = 1,  int pageSize = 10)                 
         {
             if (fechaInicio == DateTime.MinValue || fechaInicio ==null)
             {
@@ -50,7 +50,7 @@ namespace Ferreteria.Controllers
             var userIdActual = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
             var filtroUsuarioId = esAdmin ? usuarioId : userIdActual;
 
-            var ventas = await _ventaRepo.GetAllAsync(fechaInicio, fechaFin, metodoPago, estado, clienteBusqueda, filtroUsuarioId, page, pageSize);
+            var ventas = await _ventaRepo.GetAllAsync(fechaInicio, fechaFin, metodoPago, estado, clienteBusqueda, filtroUsuarioId, page, pageSize, tipoComprobante);
 
            
             if (esAdmin)

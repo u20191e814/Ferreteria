@@ -7,6 +7,8 @@
     var estado = Context.Request.Query["estado"].ToString();
     var clienteBusqueda = Context.Request.Query["clienteBusqueda"].ToString();
     var pageSize = Context.Request.Query["pageSize"].ToString() ?? "10";
+    var TipoComprobante = Context.Request.Query["TipoComprobante"].ToString();
+    //TipoComprobante
     var currentPage = int.TryParse(Context.Request.Query["page"].ToString(), out var cp) ? cp : 1;
 
     var totalItems = ViewBag.Total as int? ?? 0;
@@ -67,10 +69,13 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label fw-semibold">Cliente</label>
-                        <input type="text" name="clienteBusqueda" class="form-control"
-                               placeholder="Nombre o documento..."
-                               value="@clienteBusqueda">
+                        <label class="form-label fw-semibold">Tipo de comprobante</label>
+                        <select name="TipoComprobante" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="PROFORMA" selected="@(TipoComprobante == "PROFORMA")">Proforma</option>
+                            <option value="BOLETA" selected="@(TipoComprobante == "BOLETA")">Boleta</option>
+                            <option value="FACTURA" selected="@(TipoComprobante == "FACTURA")">Factura</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">Vendedor</label>
@@ -90,6 +95,12 @@
                 </div>
                 <div class="row mt-3">
                     <div class="col-md-2">
+                        <label class="form-label fw-semibold">Cliente</label>
+                        <input type="text" name="clienteBusqueda" class="form-control"
+                               placeholder="Nombre o documento..."
+                               value="@clienteBusqueda">
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label fw-semibold">Registros por página</label>
                         <select name="pageSize" class="form-select" onchange="this.form.submit()">
                             <option value="10" selected="@(pageSize == "10")">10 registros</option>
@@ -97,7 +108,7 @@
                             <option value="50" selected="@(pageSize == "50")">50 registros</option>
                         </select>
                     </div>
-                    <div class="col-md-10 d-flex align-items-end justify-content-end gap-2">
+                    <div class="col-md-8 d-flex align-items-end justify-content-end gap-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-search me-2"></i>Buscar
                         </button>

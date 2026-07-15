@@ -201,10 +201,7 @@
                             <span class="text-muted">Descuento Total</span>
                             <strong class="text-danger" id="resumenDescuento">- S/ 0.00</strong>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">IGV (18%)</span>
-                            <strong id="resumenIGV">S/ 0.00</strong>
-                        </div>
+                       
                         <hr class="my-2">
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fs-5">TOTAL</span>
@@ -807,11 +804,12 @@
             });
             
             const subtotalNeto = subtotal - descuentoTotal;
-            const igv = subtotalNeto * 0.18;
-            const total = subtotalNeto + igv;
+           // const igv = subtotalNeto * 0.18;
+            //const total = subtotalNeto + igv;
+            const total = subtotalNeto ;
             
             document.getElementById('resumenSubtotal').textContent = 'S/ ' + subtotalNeto.toFixed(2);
-            document.getElementById('resumenIGV').textContent = 'S/ ' + igv.toFixed(2);
+            //document.getElementById('resumenIGV').textContent = 'S/ ' + igv.toFixed(2);
             document.getElementById('resumenTotal').textContent = 'S/ ' + total.toFixed(2);
             document.getElementById('cantidadProductos').textContent = productosEnPedido.length + ' items';
             

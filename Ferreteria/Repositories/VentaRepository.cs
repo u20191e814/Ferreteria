@@ -7,7 +7,7 @@ namespace Ferreteria.Repositories
     public interface IVentaRepository
     {
         Task<int> CreateAsync(VentaCreateDto dto, int usuarioId);
-        Task<(IEnumerable<VentaListDto>, int )> GetAllAsync(DateTime fechaInicio , DateTime fechaFin ,string? metodoPago = null, string? estado = null, string? clienteBusqueda = null, int? usuarioId = null, int page = 1, int pageSize = 20);
+        Task<(IEnumerable<VentaListDto>, int )> GetAllAsync(DateTime fechaInicio , DateTime fechaFin ,string? metodoPago = null, string? estado = null, string? clienteBusqueda = null, int? usuarioId = null, int page = 1, int pageSize = 20, string? tipoComprobante =null);
         Task<ReporteVentasDto> GetReporteAsync(DateTime fechaInicio, DateTime fechaFin, string agrupacion, int? usuarioId = null);
 
         Task<VentaDetailDto> GetByIdAsync(int id);
@@ -56,8 +56,8 @@ namespace Ferreteria.Repositories
                     try
                     {
                         // Generar número de factura
-                        string getNumero = $@"  SELECT '{inicial}' + FORMAT(GETDATE(), 'yyyyMMdd') + '-' + 
-                           RIGHT('0000' + CAST(ISNULL(MAX(CAST(SUBSTRING(NumeroFactura, 12, 4) as INT)), 0) + 1 as VARCHAR), 4)
+                        string getNumero = $@"  SELECT '{inicial}'   + 
+                          RIGHT('00000000' + CAST(ISNULL(MAX(CAST(SUBSTRING(NumeroFactura, 3, 8) as INT)), 0) + 1 as VARCHAR), 8)
                            FROM [TiendaDB].[dbo].Ventas  WHERE TipoComprobante = '{dto.TipoComprobante}'";
 
                         var numeroFactura = await cn.QuerySingleAsync<string>(getNumero, transaction: transaction);
@@ -170,7 +170,7 @@ namespace Ferreteria.Repositories
            
         }
 
-        public async Task<(IEnumerable<VentaListDto>, int )> GetAllAsync(DateTime fechaInicio , DateTime fechaFin , string? metodoPago = null, string? estado = null, string? clienteBusqueda = null, int? usuarioId = null, int page = 1, int pageSize = 20)
+        public async Task<(IEnumerable<VentaListDto>, int )> GetAllAsync(DateTime fechaInicio , DateTime fechaFin , string? metodoPago = null, string? estado = null, string? clienteBusqueda = null, int? usuarioId = null, int page = 1, int pageSize = 20 ,  string? tipoComprobante = null)
         {
             try
             {
@@ -215,6 +215,11 @@ namespace Ferreteria.Repositories
                 {
                     query += string.Format(" and ( c.NombreCompleto like '%{0}%' or  c.NumeroDocumento like '%{0}%' ) ", clienteBusqueda);
                     squeryCantidad += string.Format(" and ( c.NombreCompleto like '%{0}%' or  c.NumeroDocumento like '%{0}%' ) ", clienteBusqueda);
+                }
+                if (!string.IsNullOrEmpty(tipoComprobante))
+                {
+                    query += string.Format(" and v.TipoComprobante = '{0}'", tipoComprobante);
+                    squeryCantidad += string.Format(" and v.TipoComprobante = '{0}'", tipoComprobante);
                 }
                 int total = 0;
                 squeryCantidad = squeryCantidad.Replace("WHERE  AND", "WHERE");
@@ -300,7 +305,7 @@ namespace Ferreteria.Repositories
             {
                 using (SqlConnection cn = new(_connectionString))
                 {
-                    string query = @"  SELECT  v.Id, v.NumeroFactura, v.FechaVenta, v.Total, v.MetodoPago, v.Estado,
+                    string query = @"  SELECT  v.Id, v.NumeroFactura, v.FechaVenta, v.Total, v.MetodoPago, v.Estado,v.TipoComprobante ,
                         v.SubTotal, v.Impuestos, v.Descuento, v.Observaciones,  c.NombreCompleto as ClienteNombre, 
                         c.Direccion as ClienteDireccion,  c.Telefono as ClienteTelefono,  c.Email as ClienteEmail,
                         c.NumeroDocumento as ClienteDocumento,  u.Nombre + ' ' + u.Apellido as VendedorNombre
