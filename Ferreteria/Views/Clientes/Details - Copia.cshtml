@@ -1,0 +1,195 @@
+﻿@* FerreteriaApp.Web/Views/Clientes/Details.cshtml *@
+@model Ferreteria.Entities.Cliente
+@{
+    ViewData["Title"] = "Detalle del cliente";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        
+        <h2 class="mb-0">@Model.NombreCompleto</h2>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Editar
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        @* Card de información principal *@
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <div class="bg-primary bg-opacity-10 rounded-circle p-4 mx-auto mb-3"
+                     style="width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas @(Model.TipoDocumento == "RUC" ? "fa-building" : "fa-user") fa-4x text-primary"></i>
+                </div>
+
+                <h4 class="mb-1">@Model.NombreCompleto</h4>
+                <p class="text-muted mb-3">
+                    <span class="badge @(Model.TipoDocumento == "DNI" ? "bg-primary" : Model.TipoDocumento == "RUC" ? "bg-warning text-dark" : "bg-info") fs-6">
+                        @Model.TipoDocumento
+                    </span>
+                </p>
+
+                <code class="d-block mb-3 fs-5">@Model.NumeroDocumento</code>
+
+                @if (Model.EsFrecuente)
+                {
+                    <div class="alert alert-warning">
+                        <i class="fas fa-star me-2"></i>
+                        <strong>Cliente Frecuente</strong>
+                        @if (Model.DescuentoPreferencial > 0)
+                        {
+                            <div class="mt-1">Descuento: <strong>@Model.DescuentoPreferencial%</strong></div>
+                        }
+                    </div>
+                }
+
+               @*  <div class="d-grid gap-2">
+                    <a href="tel:@Model.Telefono" class="btn btn-outline-primary">
+                        <i class="fas fa-phone me-2"></i>Llamar
+                    </a>
+                    @if (!string.IsNullOrEmpty(Model.Email))
+                    {
+                        <a href="mailto:@Model.Email" class="btn btn-outline-info">
+                            <i class="fas fa-envelope me-2"></i>Enviar Email
+                        </a>
+                    }
+                </div> *@
+            </div>
+        </div>
+
+        @* Card de estado *@
+        <div class="card mt-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información del Sistema</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Estado</span>
+                    <span class="badge @(Model.Activo ? "bg-success" : "bg-danger")">
+                        @(Model.Activo ? "Activo" : "Inactivo")
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Registrado</span>
+                    <strong>@Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">ID Cliente</span>
+                    <code>#@Model.Id</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        @* Información de contacto *@
+        <div class="card mb-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="mb-0"><i class="fas fa-address-card me-2 text-primary"></i>Información de Contacto</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Teléfono</label>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-phone text-primary me-3 fa-lg"></i>
+                            <div>
+                                <h6 class="mb-0">@Model.Telefono</h6>
+                                <small class="text-muted">Principal</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted">Email</label>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-envelope text-info me-3 fa-lg"></i>
+                            <div>
+                                <h6 class="mb-0">@(Model.Email ?? "No registrado")</h6>
+                                <small class="text-muted">Correo electrónico</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-muted">Dirección</label>
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-map-marker-alt text-danger me-3 fa-lg mt-1"></i>
+                            <div>
+                                <h6 class="mb-0">@(Model.Direccion ?? "No registrada")</h6>
+                                <small class="text-muted">Dirección fiscal/comercial</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Acciones rápidas *@
+        <div class="card">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2 text-warning"></i>Acciones Rápidas</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <a asp-controller="Ventas" asp-action="Create" asp-route-clienteId="@Model.Id"
+                           class="btn btn-outline-success w-100 h-100 py-3">
+                            <i class="fas fa-cash-register fa-2x mb-2 d-block"></i>
+                            <strong>Nueva Venta</strong>
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="Pedidos" asp-action="Create" asp-route-clienteId="@Model.Id"
+                           class="btn btn-outline-primary w-100 h-100 py-3">
+                            <i class="fas fa-clipboard-list fa-2x mb-2 d-block"></i>
+                            <strong>Nuevo Pedido</strong>
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-outline-info w-100 h-100 py-3" onclick="verHistorial()">
+                            <i class="fas fa-history fa-2x mb-2 d-block"></i>
+                            <strong>Ver Historial</strong>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Estadísticas (placeholder) *@
+        <div class="card mt-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-success"></i>Estadísticas de Compras</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4 text-center">
+                    <div class="col-md-4">
+                        <h3 class="text-primary mb-1">0</h3>
+                        <small class="text-muted">Ventas Totales</small>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-success mb-1">S/ 0.00</h3>
+                        <small class="text-muted">Total Comprado</small>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-info mb-1">-</h3>
+                        <small class="text-muted">Última Compra</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function verHistorial() {
+            alert('Función de historial de compras - Implementar con reportes');
+        }
+    </script>
+}

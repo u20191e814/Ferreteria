@@ -6,7 +6,6 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        
         <h2 class="mb-0">@Model.NombreCompleto</h2>
     </div>
     <div class="d-flex gap-2">
@@ -49,18 +48,6 @@
                         }
                     </div>
                 }
-
-               @*  <div class="d-grid gap-2">
-                    <a href="tel:@Model.Telefono" class="btn btn-outline-primary">
-                        <i class="fas fa-phone me-2"></i>Llamar
-                    </a>
-                    @if (!string.IsNullOrEmpty(Model.Email))
-                    {
-                        <a href="mailto:@Model.Email" class="btn btn-outline-info">
-                            <i class="fas fa-envelope me-2"></i>Enviar Email
-                        </a>
-                    }
-                </div> *@
             </div>
         </div>
 
@@ -136,7 +123,7 @@
                 <h5 class="mb-0"><i class="fas fa-bolt me-2 text-warning"></i>Acciones Rápidas</h5>
             </div>
             <div class="card-body p-4">
-                <div class="row g-3">
+                <div class="row g-3 align-items-center">
                     <div class="col-md-4">
                         <a asp-controller="Ventas" asp-action="Create" asp-route-clienteId="@Model.Id"
                            class="btn btn-outline-success w-100 h-100 py-3">
@@ -151,17 +138,18 @@
                             <strong>Nuevo Pedido</strong>
                         </a>
                     </div>
-                    @* <div class="col-md-4">
-                        <button type="button" class="btn btn-outline-info w-100 h-100 py-3" onclick="verHistorial()">
+                    <div class="col-md-4 d-flex gap-2">
+                        <button id="btnVerHistorial" type="button" class="btn btn-outline-info w-100 py-3" onclick="verHistorial(1)">
                             <i class="fas fa-history fa-2x mb-2 d-block"></i>
                             <strong>Ver Historial</strong>
                         </button>
-                    </div> *@
+                        
+                    </div>
                 </div>
             </div>
         </div>
 
-        @* Estadísticas (placeholder) *@
+        @* Estadísticas *@
         <div class="card mt-4">
             <div class="card-header bg-white border-0 pt-4 px-4">
                 <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-success"></i>Estadísticas de Compras</h5>
@@ -169,15 +157,15 @@
             <div class="card-body p-4">
                 <div class="row g-4 text-center">
                     <div class="col-md-4">
-                        <h3 class="text-primary mb-1">0</h3>
+                        <h3 id="ventasTotales" class="text-primary mb-1">0</h3>
                         <small class="text-muted">Ventas Totales</small>
                     </div>
                     <div class="col-md-4">
-                        <h3 class="text-success mb-1">S/ 0.00</h3>
+                        <h3 id="totalComprado" class="text-success mb-1">S/ 0.00</h3>
                         <small class="text-muted">Total Comprado</small>
                     </div>
                     <div class="col-md-4">
-                        <h3 class="text-info mb-1">-</h3>
+                        <h4 id="ultimaCompra" class="text-info mb-1">-</h4>
                         <small class="text-muted">Última Compra</small>
                     </div>
                 </div>
@@ -186,10 +174,194 @@
     </div>
 </div>
 
+@* Modal para historial de compras con paginación *@
+<div class="modal fade" id="historialModal" tabindex="-1" aria-labelledby="historialModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Historial de Compras </h5>
+                <div class="ms-3 d-flex align-items-center">
+                    <small class="text-muted me-2">Total:</small>
+                    <span id="historialTotal" class="fw-semibold">0</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="historialTable">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Comprobante</th>
+                                <th>Estado</th>
+                                <th>Vendedor</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Filas generadas por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer d-flex flex-column align-items-stretch">
+                <select id="selectPageSize" class="form-select form-select-sm" style="width:110px; align-self:center;">
+                    <option value="5">5 pág</option>
+                    <option value="8" selected>8 pág</option>
+                    <option value="15">15 pág</option>
+                    <option value="30">30 pág</option>
+                </select>
+                <nav>
+                    <ul id="historialPagination" class="pagination justify-content-center mb-2"></ul>
+                </nav>
+                 
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        function verHistorial() {
-            alert('Función de historial de compras - Implementar con reportes');
+        document.addEventListener('DOMContentLoaded', function () {
+            cargarEstadisticas();
+            // reabrir historial cuando cambie el pageSize
+            document.getElementById('selectPageSize').addEventListener('change', function () {
+                // si el modal está abierto, recargar desde la página 1
+                var modalEl = document.getElementById('historialModal');
+                if (modalEl.classList.contains('show')) {
+                    verHistorial(1);
+                }
+            });
+        });
+
+        function formatearMoneda(valor) {
+            try {
+                return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(valor);
+            } catch {
+                return 'S/ ' + parseFloat(valor).toFixed(2);
+            }
+        }
+
+        function formatearFecha(fechaStr) {
+            if (!fechaStr) return '-';
+            var d = new Date(fechaStr);
+            if (isNaN(d)) return '-';
+            var dia = String(d.getDate()).padStart(2, '0');
+            var mes = String(d.getMonth() + 1).padStart(2, '0');
+            var año = d.getFullYear();
+            var hora = String(d.getHours()).padStart(2, '0');
+            var minuto = String(d.getMinutes()).padStart(2, '0');
+            return dia + '/' + mes + '/' + año + ' ' + hora + ':' + minuto;
+        }
+
+        async function cargarEstadisticas() {
+            try {
+                var clienteId = @Model.Id;
+                var res = await fetch('/Ventas/EstadisticasCliente?clienteId=' + clienteId);
+                if (!res.ok) return;
+                var data = await res.json();
+                document.getElementById('ventasTotales').textContent = data.cantidadVentas ?? 0;
+                document.getElementById('totalComprado').textContent = formatearMoneda(data.totalComprado ?? 0);
+                document.getElementById('ultimaCompra').textContent = data.ultimaCompra ? (new Date(data.ultimaCompra)).toLocaleString('es-PE') : '-';
+            } catch (err) {
+                console.error('Error cargando estadísticas:', err);
+            }
+        }
+
+        async function verHistorial(page = 1) {
+            try {
+                var clienteId = @Model.Id;
+                var pageSize = parseInt(document.getElementById('selectPageSize').value || '8', 10);
+                var url = '/Ventas/HistorialPorCliente?clienteId=' + clienteId + '&page=' + page + '&pageSize=' + pageSize;
+                var res = await fetch(url);
+                if (!res.ok) {
+                    alert('No se pudo obtener el historial');
+                    return;
+                }
+                var data = await res.json();
+                var ventas = data.items || [];
+                var total = data.total || 0;
+                var tbody = document.querySelector('#historialTable tbody');
+                tbody.innerHTML = '';
+                if (!ventas || ventas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay ventas registradas</td></tr>';
+                } else {
+                    ventas.forEach(function (v) {
+                        var tr = document.createElement('tr');
+
+                        var fechaTd = document.createElement('td');
+                        fechaTd.textContent = formatearFecha(v.fechaVenta);
+                        tr.appendChild(fechaTd);
+
+                        var compTd = document.createElement('td');
+                        compTd.innerHTML = '<a href="/Ventas/Details?id=' + v.id + '">' + (v.numeroFactura || '-') + '</a>';
+                        tr.appendChild(compTd);
+
+                        var estadoTd = document.createElement('td');
+                        var estadoClass = v.estado === 'COMPLETADA' ? 'bg-success' : v.estado === 'ANULADA' ? 'bg-danger' : 'bg-secondary';
+                        estadoTd.innerHTML = '<span class="badge ' + estadoClass + '">' + (v.estado || '-') + '</span>';
+                        tr.appendChild(estadoTd);
+
+                        var vendedorTd = document.createElement('td');
+                        vendedorTd.textContent = v.vendedorNombre || '-';
+                        tr.appendChild(vendedorTd);
+
+                        var totalTd = document.createElement('td');
+                        totalTd.className = 'text-end';
+                        totalTd.textContent = formatearMoneda(v.total || 0);
+                        tr.appendChild(totalTd);
+
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                document.getElementById('historialTotal').textContent = total;
+
+                renderPagination(page, pageSize, total);
+                var modalEl = document.getElementById('historialModal');
+                var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                modal.show();
+            } catch (err) {
+                console.error('Error al obtener historial:', err);
+                alert('Error al obtener historial de compras');
+            }
+        }
+
+        function renderPagination(currentPage, pageSize, totalItems) {
+            var totalPages = Math.ceil((totalItems || 0) / pageSize) || 1;
+            var ul = document.getElementById('historialPagination');
+            ul.innerHTML = '';
+
+            function createPageItem(page, text, disabled, active) {
+                var li = document.createElement('li');
+                li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+                var a = document.createElement('a');
+                a.className = 'page-link';
+                a.href = 'javascript:void(0)';
+                a.textContent = text;
+                a.addEventListener('click', function () {
+                    if (!disabled && !active) verHistorial(page);
+                });
+                li.appendChild(a);
+                return li;
+            }
+
+            // Previous
+            ul.appendChild(createPageItem(Math.max(1, currentPage - 1), 'Anterior', currentPage === 1, false));
+
+            // Mostrar rango de páginas (máx 7)
+            var start = Math.max(1, currentPage - 3);
+            var end = Math.min(totalPages, start + 6);
+            if (end - start < 6) {
+                start = Math.max(1, end - 6);
+            }
+
+            for (var p = start; p <= end; p++) {
+                ul.appendChild(createPageItem(p, p, false, p === currentPage));
+            }
+
+            // Next
+            ul.appendChild(createPageItem(Math.min(totalPages, currentPage + 1), 'Siguiente', currentPage === totalPages, false));
         }
     </script>
 }

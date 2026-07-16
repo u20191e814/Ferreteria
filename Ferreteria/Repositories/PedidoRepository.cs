@@ -20,7 +20,7 @@ namespace Ferreteria.Repositories
         
         Task<IEnumerable<PedidoListDto>> GetAllAsync(PedidoFiltroDto filtros);
 
-        Task<bool> ExisteVentaDePedidoAsync(int pedidoId);
+        Task<long> ExisteVentaDePedidoAsync(int pedidoId);
         Task<VentaResultDto> ConvertirAVentaAsync(int pedidoId, int usuarioId, VentaCreateDto datosVenta);
         Task<bool> ValidarPedidoParaVentaAsync(int pedidoId);
          
@@ -35,22 +35,22 @@ namespace Ferreteria.Repositories
             _connectionString = configuration.GetConnectionString("DefaultConnection");
 
         }
-        public async Task<bool> ExisteVentaDePedidoAsync(int pedidoId)
+        public async Task<long> ExisteVentaDePedidoAsync(int pedidoId)
         {
             try
             {
                 using (SqlConnection cn = new(_connectionString))
                 {
-                    string query = "SELECT COUNT(1) FROM [TiendaDB].[dbo].Ventas WHERE PedidoId = @PedidoId";
+                    string query = "SELECT Id FROM [TiendaDB].[dbo].Ventas WHERE PedidoId = @PedidoId";
                   
-                    var count = await cn.ExecuteScalarAsync<int>(query, new { PedidoId = pedidoId });
-                    return count > 0;
+                    var count = await cn.ExecuteScalarAsync<long>(query, new { PedidoId = pedidoId });
+                    return count ;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine("PedidoRepository.ExisteVentaDePedidoAsync: " + ex.Message);
-                return false;
+                return 0;
             }
              
         }

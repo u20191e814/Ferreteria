@@ -76,8 +76,13 @@
         public string UsuarioAnulacionNombre { get; set; }
     }
 
-    
 
+    public class ClienteEstadisticasDto
+    {
+        public int CantidadVentas { get; set; }
+        public decimal TotalComprado { get; set; }
+        public DateTime? UltimaCompra { get; set; }
+    }
     public class ProductoStockRevertidoDto
     {
         public int ProductoId { get; set; }

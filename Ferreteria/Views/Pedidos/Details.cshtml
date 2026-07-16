@@ -597,7 +597,7 @@
             div.textContent = text;
             return div.innerHTML;
         }
-        
+        mostrarModalConvertirVenta();
         // Funciones para conversión a venta
         function mostrarModalConvertirVenta() {
             if ("@Model.Estado" == "FINALIZADO") {
@@ -617,6 +617,7 @@
                         document.getElementById('alertaVentaExistente').classList.remove('d-none');
                         document.getElementById('btnConvertirVenta').disabled = true;
                         document.getElementById('btnConvertirVenta').classList.add('d-none');
+                        document.getElementById('linkVerVenta').href ="/Ventas/Details?id=" + data.id_venta;
 
                        
                     } else {

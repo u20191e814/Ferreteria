@@ -360,7 +360,7 @@ namespace Ferreteria.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // GET: Ventas/DetalleAnulacion/5 (para mostrar info de anulación si ya está anulada)
+         
         [HttpGet]
         public async Task<IActionResult> DetalleAnulacion(int id)
         {
@@ -370,6 +370,41 @@ namespace Ferreteria.Controllers
 
             var historial = await _ventaRepo.GetHistorialAnulacionesAsync(id);
             return Json(historial.FirstOrDefault());
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EstadisticasCliente(int clienteId)
+        {
+            try
+            {
+                var stats = await _ventaRepo.GetEstadisticasClienteAsync(clienteId);
+                if (stats == null)
+                    return Json(new ClienteEstadisticasDto { CantidadVentas = 0, TotalComprado = 0, UltimaCompra = null });
+
+                return Json(stats);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo estadísticas del cliente {ClienteId}", clienteId);
+                return StatusCode(500, new { error = "Error al obtener estadísticas" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> HistorialPorCliente(int clienteId, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                var result = await _ventaRepo.GetVentasPorClienteAsync(clienteId, page, pageSize);
+                var items = result.Item1;
+                var total = result.Item2;
+                return Json(new { items, total });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo historial del cliente {ClienteId}", clienteId);
+                return StatusCode(500, new { error = "Error al obtener historial" });
+            }
         }
 
     }

@@ -194,15 +194,15 @@ namespace Ferreteria.Controllers
                     return BadRequest(new { error = "El pedido debe estar finalizado", estado = pedido.Estado });
 
                 var existeVenta = await _repo.ExisteVentaDePedidoAsync(id);
-                if (existeVenta)
-                    return BadRequest(new { error = "Este pedido ya fue convertido en venta", yaConvertido = true });
+                if (existeVenta>0)
+                    return BadRequest(new { error = "Este pedido ya fue convertido en venta", yaConvertido = true, id_venta = existeVenta });
 
                 // Retornar datos para pre-llenar la venta
                 return Json(new
                 {
                     valido = true,
                     pedidoId = id,
-                    clienteId = pedido.ClienteId, // Necesitarías agregar ClienteId a PedidoDetailDto
+                    clienteId = pedido.ClienteId, 
                     clienteNombre = pedido.ClienteNombre,
                     total = pedido.Total,
                     subTotal = pedido.SubTotal,

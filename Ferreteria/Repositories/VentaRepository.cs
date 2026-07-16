@@ -14,8 +14,11 @@ namespace Ferreteria.Repositories
         Task<bool> AnularAsync(int id, int usuarioId, string motivo);
         
         Task<IEnumerable<VentaAnulacionDto>> GetHistorialAnulacionesAsync(int ventaId);
+        Task<ClienteEstadisticasDto> GetEstadisticasClienteAsync(int clienteId);
+        Task<(IEnumerable<VentaListDto>, int)> GetVentasPorClienteAsync(int clienteId, int page = 1, int pageSize = 10);
 
     }
+
 
     public class VentaRepository : IVentaRepository
     {
@@ -479,6 +482,70 @@ namespace Ferreteria.Repositories
                 return null;
             }
              
+        }
+        public async Task<ClienteEstadisticasDto> GetEstadisticasClienteAsync(int clienteId)
+        {
+            try
+            {
+                using (SqlConnection cn = new(_connectionString))
+                {
+                    string query = @"
+                        SELECT 
+                            COUNT(1) AS CantidadVentas,
+                            ISNULL(SUM(Total), 0) AS TotalComprado,
+                            MAX(FechaVenta) AS UltimaCompra
+                        FROM [TiendaDB].[dbo].Ventas
+                        WHERE ClienteId = @ClienteId AND Estado = 'COMPLETADA'";
+
+                    var result = await cn.QueryFirstOrDefaultAsync<dynamic>(query, new { ClienteId = clienteId });
+
+                    return new ClienteEstadisticasDto
+                    {
+                        CantidadVentas = (int)result.CantidadVentas,
+                        TotalComprado = (decimal)result.TotalComprado,
+                        UltimaCompra = result.UltimaCompra == null ? (DateTime?)null : (DateTime)result.UltimaCompra
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("VentaRepository.GetEstadisticasClienteAsync: " + ex.Message);
+                return new ClienteEstadisticasDto { CantidadVentas = 0, TotalComprado = 0, UltimaCompra = null };
+            }
+        }
+
+
+        public async Task<(IEnumerable<VentaListDto>, int)> GetVentasPorClienteAsync(int clienteId, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page <= 0) page = 1;
+                if (pageSize <= 0) pageSize = 10;
+
+                var countQuery = @"SELECT COUNT(1) FROM [TiendaDB].[dbo].Ventas v WHERE v.ClienteId = @ClienteId";
+                var query = @"
+                    SELECT v.Id, v.NumeroFactura, v.FechaVenta, v.Total, v.MetodoPago, v.Estado, v.TipoComprobante,
+                           c.NombreCompleto as ClienteNombre,
+                           u.Nombre + ' ' + u.Apellido as VendedorNombre
+                    FROM [TiendaDB].[dbo].Ventas v
+                    INNER JOIN [TiendaDB].[dbo].Clientes c ON v.ClienteId = c.Id
+                    INNER JOIN [TiendaDB].[dbo].Usuarios u ON v.UsuarioVendedorId = u.Id
+                    WHERE v.ClienteId = @ClienteId
+                    ORDER BY v.FechaVenta DESC
+                    OFFSET ((@Page - 1) * @PageSize) ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+                using (SqlConnection cn = new SqlConnection(_connectionString))
+                {
+                    var total = await cn.QueryFirstOrDefaultAsync<int>(countQuery, new { ClienteId = clienteId });
+                    var items = await cn.QueryAsync<VentaListDto>(query, new { ClienteId = clienteId, Page = page, PageSize = pageSize });
+                    return (items, total);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("VentaRepository.GetVentasPorClienteAsync: " + ex.Message);
+                return (Enumerable.Empty<VentaListDto>(), 0);
+            }
         }
     }
 }
