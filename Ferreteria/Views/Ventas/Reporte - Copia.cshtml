@@ -69,25 +69,26 @@
 
 <div class="row g-4">
      
-    <div class="card" style="height:500px">
+    <div class="card">
         <div class="card-header bg-white pt-4 px-4">
             <h5 class="mb-0">Top 10 Productos más vendidos</h5>
         </div>
-        <div class="card-body" style="height:400px; ">
-            <canvas id="topProductosChart" style="height:400px; width:100%; "></canvas>
+        <div class="card-body">
+            <canvas id="topProductosChart" height="200"></canvas>
         </div>
     </div>
      
+    
 </div>
 <p></p>
 <div class="row g-4">
      
-    <div class="card"  >
+    <div class="card">
         <div class="card-header bg-white pt-4 px-4">
             <h5 class="mb-0">Ventas por Usuario</h5>
         </div>
-        <div class="card-body"  >
-            <canvas id="ventasUsuariosChart" style="height:400px; width:100%; "></canvas>
+        <div class="card-body">
+            <canvas id="ventasUsuariosChart" height="200"></canvas>
         </div>
     </div>
      
@@ -112,16 +113,7 @@
             return resp.json();
         }
 
-        // Genera un color HSL aleatorio con alpha para buen contraste
-        function randomColor(alpha = 0.85) {
-            const h = Math.floor(Math.random() * 360);
-            const s = 65; // saturación
-            const l = 55; // luminosidad
-            return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
-        }
-
-        // Construye una barra vertical. backgroundColor puede ser un string o un array de colores.
-        function buildBar(ctx, labels, values, labelText, backgroundColors = 'rgba(54, 162, 235, 0.8)') {
+        function buildHorizontalBar(ctx, labels, values, labelText, color = 'rgba(54, 162, 235, 0.8)') {
             if (!ctx) return null;
             return new Chart(ctx, {
                 type: 'bar',
@@ -130,16 +122,15 @@
                     datasets: [{
                         label: labelText,
                         data: values,
-                        backgroundColor: backgroundColors,
+                        backgroundColor: color,
                         borderWidth: 1
                     }]
                 },
                 options: {
-                    // 'x' = orientación vertical (columnas). Invertimos respecto al 'y' anterior.
-                    indexAxis: 'x',
+                    indexAxis: 'y',
                     responsive: true,
                     scales: {
-                        y: {
+                        x: {
                             beginAtZero: true
                         }
                     },
@@ -150,7 +141,7 @@
                         tooltip: {
                             callbacks: {
                                 label: function (context) {
-                                    const val = context.parsed.y ?? context.parsed.x;
+                                    const val = context.parsed.x ?? context.parsed.y;
                                     return labelText + ': ' + val;
                                 }
                             }
@@ -178,12 +169,9 @@
                 const topLabels = topData.map(x => x.productoNombre);
                 const topValues = topData.map(x => x.cantidadVendida);
 
-                // Generar colores aleatorios y distintos por producto
-                const topColors = topLabels.map(() => randomColor(0.85));
-
                 const topCtx = document.getElementById('topProductosChart').getContext('2d');
                 if (chartTop) { chartTop.destroy(); chartTop = null; }
-                chartTop = buildBar(topCtx, topLabels, topValues, 'Cantidad vendida', topColors);
+                chartTop = buildHorizontalBar(topCtx, topLabels, topValues, 'Cantidad vendida', 'rgba(75, 192, 192, 0.8)');
 
                 // Ventas por usuario
                 const usuariosUrl = '/Ventas/VentasPorUsuarios?' + params.toString();
@@ -191,12 +179,9 @@
                 const usuariosLabels = usuariosData.map(x => x.usuarioNombre);
                 const usuariosValues = usuariosData.map(x => parseFloat(x.totalVentas));
 
-                // Generar colores aleatorios y distintos por usuario
-                const usuariosColors = usuariosLabels.map(() => randomColor(0.85));
-
                 const usuariosCtx = document.getElementById('ventasUsuariosChart').getContext('2d');
                 if (chartUsuarios) { chartUsuarios.destroy(); chartUsuarios = null; }
-                chartUsuarios = buildBar(usuariosCtx, usuariosLabels, usuariosValues, 'Total ventas', usuariosColors);
+                chartUsuarios = buildHorizontalBar(usuariosCtx, usuariosLabels, usuariosValues, 'Total ventas', 'rgba(255, 159, 64, 0.85)');
 
             } catch (ex) {
                 console.error(ex);

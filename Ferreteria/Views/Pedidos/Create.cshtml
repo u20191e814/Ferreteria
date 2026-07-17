@@ -391,6 +391,27 @@
             document.getElementById('observaciones').addEventListener('input', function() {
                 document.getElementById('contadorObs').textContent = `${this.value.length}/500`;
             });
+
+             try {
+                const params = new URLSearchParams(window.location.search);
+                const clienteIdParam = params.get('clienteId');
+                if (clienteIdParam) {
+                    const id = parseInt(clienteIdParam, 10);
+                    if (!isNaN(id) && id > 0) {
+                        // Mostrar indicador mientras se carga
+                        const indicador = document.getElementById('indicadorCargaCliente');
+                        if (indicador) indicador.classList.remove('d-none');
+
+                        // seleccionarCliente es async; llamamos y ocultamos indicador al terminar
+                        seleccionarCliente(id).finally(() => {
+                            if (indicador) indicador.classList.add('d-none');
+                            validarFormulario();
+                        });
+                    }
+                }
+            } catch (ex) {
+                console.error('Error leyendo query string:', ex);
+            }
         });
 
         // ========== BÚSQUEDA AJAX DE CLIENTES ==========

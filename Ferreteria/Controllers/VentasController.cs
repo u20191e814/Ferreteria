@@ -30,7 +30,7 @@ namespace Ferreteria.Controllers
             _repoTienda  = repoTienda;
             _logger = logger;
         }
-
+        
         public async Task<IActionResult> Index(    DateTime fechaInicio,    DateTime fechaFin,    string metodoPago,
                     string estado, string clienteBusqueda, string tipoComprobante,      int? usuarioId,int page = 1,  int pageSize = 10)                 
         {
@@ -73,12 +73,19 @@ namespace Ferreteria.Controllers
 
        
 
-        public IActionResult Create(int? pedidoId)
+        public IActionResult Create(int? pedidoId, int? clienteId)
         {
             ViewBag.PedidoId = pedidoId;
-            return View();
+            var model = new VentaCreateDto();
+            if (clienteId.HasValue)
+            {
+                model.ClienteId = clienteId.Value;
+            }
+            return View(model);
         }
-       
+
+
+ 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(VentaCreateDto dto)
@@ -406,6 +413,37 @@ namespace Ferreteria.Controllers
                 return StatusCode(500, new { error = "Error al obtener historial" });
             }
         }
+        [HttpGet]
+        public async Task<IActionResult> TopProductos(DateTime fechaInicio, DateTime fechaFin, int top = 10)
+        {
+            try
+            {
+                var usuarioId = User.IsInRole("Administrador") ? (int?)null : int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var items = await _ventaRepo.GetTopProductosAsync(fechaInicio, fechaFin, usuarioId, top);
+                return Json(items);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en TopProductos");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
 
+         
+        [HttpGet]
+        public async Task<IActionResult> VentasPorUsuarios(DateTime fechaInicio, DateTime fechaFin, string agrupacion = "DIARIA")
+        {
+            try
+            {
+                var usuarioId = User.IsInRole("Administrador") ? (int?)null : int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var items = await _ventaRepo.GetVentasPorUsuarioAsync(fechaInicio, fechaFin, usuarioId);
+                return Json(items);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en VentasPorUsuarios");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
     }
 }

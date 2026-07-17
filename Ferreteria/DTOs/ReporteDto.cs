@@ -26,7 +26,13 @@
         public int CantidadVentas { get; set; }
         public decimal TotalVentas { get; set; }
     }
-
+    public class TopProductoDto
+    {
+        public int ProductoId { get; set; }
+        public string ProductoNombre { get; set; }
+        public int CantidadVendida { get; set; }
+        public decimal TotalVentas { get; set; }
+    }
     public class DashboardDto
     {
         public decimal VentasHoy { get; set; }

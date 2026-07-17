@@ -17,6 +17,10 @@ namespace Ferreteria.Repositories
         Task<ClienteEstadisticasDto> GetEstadisticasClienteAsync(int clienteId);
         Task<(IEnumerable<VentaListDto>, int)> GetVentasPorClienteAsync(int clienteId, int page = 1, int pageSize = 10);
 
+
+        Task<IEnumerable<TopProductoDto>> GetTopProductosAsync(DateTime fechaInicio, DateTime fechaFin, int? usuarioId = null, int top = 10);
+        Task<IEnumerable<VentaPorUsuarioDto>> GetVentasPorUsuarioAsync(DateTime fechaInicio, DateTime fechaFin, int? usuarioId = null);
+
     }
 
 
@@ -177,6 +181,7 @@ namespace Ferreteria.Repositories
         {
             try
             {
+                //fechaFin = fechaFin.Date.AddDays(1).AddSeconds(-1);
                 IEnumerable<VentaListDto> lista =null;
                 var query = @"
                 SELECT ROW_NUMBER() OVER (ORDER BY v.Id desc) AS listorder,
@@ -194,15 +199,15 @@ namespace Ferreteria.Repositories
                 WHERE v.FechaVenta between @FechaInicio  and @FechaFin ";
                 //v.Estado = 'COMPLETADA'
                 var parameters = new DynamicParameters();
-                parameters.Add("FechaInicio", fechaInicio);
-                parameters.Add("FechaFin", fechaFin.AddSeconds(86399));
+                parameters.Add("@FechaInicio", fechaInicio);
+                parameters.Add("@FechaFin", fechaFin.AddSeconds(86399));
 
 
                 if (usuarioId.HasValue)
                 {
                     query += " and v.UsuarioVendedorId = @UsuarioId";
                     squeryCantidad += " and v.UsuarioVendedorId = @UsuarioId";
-                    parameters.Add("UsuarioId", usuarioId.Value);
+                    parameters.Add("@UsuarioId", usuarioId.Value);
                 }
                 if (!string.IsNullOrEmpty(metodoPago))
                 {
@@ -545,6 +550,78 @@ namespace Ferreteria.Repositories
             {
                 Console.WriteLine("VentaRepository.GetVentasPorClienteAsync: " + ex.Message);
                 return (Enumerable.Empty<VentaListDto>(), 0);
+            }
+        }
+
+        public async Task<IEnumerable<TopProductoDto>> GetTopProductosAsync(DateTime fechaInicio, DateTime fechaFin, int? usuarioId = null, int top = 10)
+        {
+            try
+            {
+                fechaFin = fechaFin.Date.AddDays(1).AddSeconds(-1);  
+                using (SqlConnection cn = new(_connectionString))
+                {
+                    var query = $@"
+                        SELECT TOP(@Top)
+                            p.Id AS ProductoId,
+                            p.Nombre AS ProductoNombre,
+                            SUM(vd.Cantidad) AS CantidadVendida,
+                            SUM(vd.SubTotal) AS TotalVentas
+                        FROM [TiendaDB].[dbo].VentaDetalles vd
+                        INNER JOIN [TiendaDB].[dbo].Ventas v ON vd.VentaId = v.Id
+                        INNER JOIN [TiendaDB].[dbo].Productos p ON vd.ProductoId = p.Id
+                        WHERE v.FechaVenta BETWEEN @FechaInicio AND @FechaFin
+                          AND v.Estado = 'COMPLETADA'";
+
+                    if (usuarioId.HasValue)
+                        query += " AND v.UsuarioVendedorId = @UsuarioId";
+
+                    query += @"
+                        GROUP BY p.Id, p.Nombre
+                        ORDER BY CantidadVendida DESC";
+
+                    var items = await cn.QueryAsync<TopProductoDto>(query, new { FechaInicio = fechaInicio, FechaFin = fechaFin, UsuarioId = usuarioId, Top = top });
+                    return items;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("VentaRepository.GetTopProductosAsync: " + ex.Message);
+                return Enumerable.Empty<TopProductoDto>();
+            }
+        }
+
+        public async Task<IEnumerable<VentaPorUsuarioDto>> GetVentasPorUsuarioAsync(DateTime fechaInicio, DateTime fechaFin, int? usuarioId = null)
+        {
+            try
+            {
+                fechaFin = fechaFin.Date.AddDays(1).AddSeconds(-1);
+                using (SqlConnection cn = new(_connectionString))
+                {
+                    var query = @"
+                        SELECT v.UsuarioVendedorId AS UsuarioId,
+                               u.Nombre + ' ' + u.Apellido AS UsuarioNombre,
+                               COUNT(*) AS CantidadVentas,
+                               SUM(v.Total) AS TotalVentas
+                        FROM [TiendaDB].[dbo].Ventas v
+                        INNER JOIN [TiendaDB].[dbo].Usuarios u ON v.UsuarioVendedorId = u.Id
+                        WHERE v.FechaVenta BETWEEN @FechaInicio AND @FechaFin
+                          AND v.Estado = 'COMPLETADA'";
+
+                    if (usuarioId.HasValue)
+                        query += " AND v.UsuarioVendedorId = @UsuarioId";
+
+                    query += @"
+                        GROUP BY v.UsuarioVendedorId, u.Nombre, u.Apellido
+                        ORDER BY TotalVentas DESC";
+
+                    var items = await cn.QueryAsync<VentaPorUsuarioDto>(query, new { FechaInicio = fechaInicio, FechaFin = fechaFin, UsuarioId = usuarioId });
+                    return items;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("VentaRepository.GetVentasPorUsuarioAsync: " + ex.Message);
+                return Enumerable.Empty<VentaPorUsuarioDto>();
             }
         }
     }
